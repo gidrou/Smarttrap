@@ -1,6 +1,7 @@
 package test.gcm.com.myapplication;
 
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
@@ -27,7 +28,9 @@ import android.view.MenuItem;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -47,7 +50,7 @@ public class MainActivity extends AppCompatActivity
     private final int ERROR_MEASSAGE = 1;
     private final int RESEARCH_MESSAGE =2;
     private final int QUIT_MEASSAGE = 3;
-
+    private Boolean Search = false;
 
     public static Context mContext;
     public static AppCompatActivity activity;
@@ -58,6 +61,8 @@ public class MainActivity extends AppCompatActivity
     TextView mV_info,mV_info2;
     EditText myTextbox;
     Button btn;
+    private ProgressBar progress;
+
     static BluetoothAdapter mBluetoothAdapter;
     BluetoothSocketWrapper  mmSocket;
     BluetoothDevice mmDevice;
@@ -68,7 +73,7 @@ public class MainActivity extends AppCompatActivity
     int Connect_try = 0;
     final Handler handler = new Handler(Looper.getMainLooper());
     Boolean isButton=true;
-
+    View v;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -83,6 +88,7 @@ public class MainActivity extends AppCompatActivity
 
         mV_info = (TextView) findViewById(R.id.View_info1);
         mV_info2 = (TextView) findViewById(R.id.View_info2);
+        progress = (ProgressBar) findViewById(R.id.progress);
 
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (mBluetoothAdapter == null) {
@@ -101,31 +107,49 @@ public class MainActivity extends AppCompatActivity
             ListPairedDevices();
 
             devices = pairedDevices.toArray(new BluetoothDevice[0]);
-            ((MainActivity) MainActivity.mContext).doConnect(devices[0]);
+           /* ((MainActivity) MainActivity.mContext).doConnect(devices[0]);*/
             mV_info.setText(devices[0] + "\n");
         }
 
 
         btn = (Button) findViewById(R.id.button);
-        btn.setOnClickListener(new View.OnClickListener(){
-          @Override
+        btn.setOnClickListener(new View.OnClickListener() {
+            @Override
             public void onClick(View view) {
-              if (isButton) {
-                  Snackbar.make(view, "Researching Trap Start", Snackbar.LENGTH_LONG)
-                          .setAction("Action", null).show();
-                  isButton = false;
-                  btn.setText("STOP");
-              } else {
-                  Snackbar.make(view, "Researching Trap Stop", Snackbar.LENGTH_LONG)
-                          .setAction("Action", null).show();
-                  btn.setText("START");
-                  isButton = true;
-              }
-          }
+                if (isButton) {
+                    v = view;
+                    Search=true;
+                    Handler h = new Handler();
+                    Snackbar.make(view, "Connect Bluetooth...... Success!", Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                    h.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            Snackbar.make(v, "Researching Bluetooth " + "Device : " + devices[0], Snackbar.LENGTH_LONG)
+                                    .setAction("Action", null).show();
+                            mV_info2.setText("Researching Trap...");
+                        }
+                    }, 3000);
+                    isButton = false;
+                    onloading();
+                    FindBLUE();
+                    btn.setText("STOP");
+                } else {
+                    Snackbar.make(view, "Researching Trap Stop", Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                    btn.setText("START");
+                    mV_info2.setText("Researching Trap Stop");
+                    isButton = true;
+                    onstop();
+                    new CloseTask().execute();
+                    Search=false;
+                }
+            }
         });
 
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        fab.setVisibility(View.GONE);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -144,15 +168,19 @@ public class MainActivity extends AppCompatActivity
         navigationView.setNavigationItemSelectedListener(this);
     }
 
+    private void onloading() {
+        progress.setVisibility(View.VISIBLE);
+    }
+
+    private void onstop(){
+        progress.setVisibility(View.GONE);
+    }
+
     private void ListPairedDevices()
     {
         Set<BluetoothDevice> mPairedDevices = mBluetoothAdapter.getBondedDevices();
         if (mPairedDevices.size() > 0)
         {
-            for (BluetoothDevice mDevice : mPairedDevices)
-            {
-                //Log.e("420", "PairedDevices: " + mDevice.getName() + " " + mDevice.getAddress());
-            }
         }
     }
 
@@ -317,7 +345,7 @@ public class MainActivity extends AppCompatActivity
                 final Handler handler = new Handler(Looper.getMainLooper());
                 //7. 블루투스 장치로 연결을 시도합니다.
                 mmSocket.connect();
-                msgDialog(RESEARCH_MESSAGE,"트랩을 찾고있습니다");
+
                 //8. 소켓에 대한 입출력 스트림을 가져옵니다.
                 mmOutputStream = mmSocket.getOutputStream();
                 mmInputStream = mmSocket.getInputStream();
@@ -344,7 +372,6 @@ public class MainActivity extends AppCompatActivity
                 //9. 데이터 수신을 대기하기 위한 스레드를 생성하여 입력스트림로부터의 데이터를 대기하다가
                 //   들어오기 시작하면 버퍼에 저장합니다.
             } catch (Throwable t) {
-                msgDialog(RESEARCH_MESSAGE,"트랩을 찾고있습니다");
                 //try the fallback
                 try {
                     final Handler handler = new Handler(Looper.getMainLooper());
@@ -431,10 +458,12 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-    void FindBLUE() {
-        msgDialog(RESEARCH_MESSAGE,"Researching Trap");
-        ((MainActivity) MainActivity.mContext).doConnect(devices[0]);
-        msgDialog(RESEARCH_MESSAGE,"트랩을 찾고있습니다");
+    protected void FindBLUE() {
+        if(Search){
+            ((MainActivity) MainActivity.mContext).doConnect(devices[0]);
+            msgDialog(RESEARCH_MESSAGE,"");
+        }else {
+        }
     }
 
     public class FallbackBluetoothSocket extends NativeBluetoothSocket {
@@ -551,7 +580,9 @@ public class MainActivity extends AppCompatActivity
         }
         return bytes;
     }
+
     int research =0;
+
     public void msgDialog(int i, String e){
     final String msg = e;
         if(i==ERROR_MEASSAGE) {
@@ -568,15 +599,18 @@ public class MainActivity extends AppCompatActivity
             {
                 public void run() {
                     if(research==0){
-                        mV_info2.setText("Researching Trap" + "...");
+                        Snackbar.make(v, "Researching Bluetooth " + "Device : " + devices[0], Snackbar.LENGTH_LONG)
+                                .setAction("Action", null).show();
                         research++;
                     }
                     else if (research == 1){
-                        mV_info2.setText("Researching Trap" + "..");
+                        Snackbar.make(v, "Researching Bluetooth " + "Device : " + devices[0], Snackbar.LENGTH_LONG)
+                                .setAction("Action", null).show();
                         research++;
                     }
                     else if (research == 2){
-                        mV_info2.setText("Researching Trap" + ".");
+                        Snackbar.make(v, "Researching Bluetooth " + "Device : " + devices[0], Snackbar.LENGTH_LONG)
+                                .setAction("Action", null).show();
                         research=0;
                     }
                 }
@@ -592,4 +626,5 @@ public class MainActivity extends AppCompatActivity
             });
         }
     }
+
 }
