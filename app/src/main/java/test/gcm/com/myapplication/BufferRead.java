@@ -52,7 +52,7 @@ public class BufferRead  extends AppCompatActivity
 
     Context context;
     FileInputStream fis;
-    private final int SOCKET_FILENAMESIZE = 16;
+    private final int SOCKET_FILENAMESIZE = 32;
     private final int SOCKET_FILESIZE = 32;
     private final int REQ_CODE_GALLERY =100;
     private ArrayAdapter<String> ImageAdapter;
