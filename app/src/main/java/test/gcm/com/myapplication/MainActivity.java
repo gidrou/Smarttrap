@@ -37,7 +37,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
+import java.nio.Buffer;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -514,14 +517,16 @@ public class MainActivity extends AppCompatActivity
 
     int read = 0;
     int count = 0;
-
+    int c_recv_size = 0;
+    int n_recv_size = 0;
+    byte[] total_size_temp = new byte[32];
     void beginBuffer() {
         stopWorker = false;
         //문자열 수신 쓰레드.
         workerThread = new Thread(new Runnable() {
             List<Byte> buffer = new ArrayList<>();
             List<Byte> Filedata = new ArrayList<>();
-
+            int temp = 0;
             @Override
             public void run() {
                 while (!Thread.currentThread().isInterrupted() && !stopWorker) {
@@ -530,36 +535,62 @@ public class MainActivity extends AppCompatActivity
                         mmInputStream = mmSocket.getInputStream();
                         int bytesAvailable = 0;
                         bytesAvailable = mmInputStream.available();
+
                         if (bytesAvailable > 0) {
                             byte[] packetBytes = new byte[bytesAvailable];
+                            c_recv_size += bytesAvailable;
                             mmInputStream.read(packetBytes);
                             for (int i = 0; i < bytesAvailable; i++) {
                                 buffer.add(packetBytes[i]);
                                 count = 0;
                             }
+                            temp = RECV_TOTAL_SIZE(buffer);
                         }
                         else{
+
+
                             count++;
-                            if(count>100){
-                                byte c;
-                                stopWorker = true;
-                                for(int i=0; i<buffer.size();i++){
-                                    c = buffer.get(i);
-                                    Filedata.add(c);
+
+                            if(count>100) {
+                                if (c_recv_size <= temp) {
+                                    //onstop();
+                                    new CloseTask().execute();
+                                    //FindBLUE();
+
+                                    c_recv_size = 0;
+
+                                    count=0;
+                                    Log.e("COUNT"," Count > 100 : "+c_recv_size+" : : "+temp);
+                                } else {
+                                    Log.e("COUNT"," Count < 100 : "+count);
+                                    Log.e("temp"," temp > recv_size : "+temp+" :: "+c_recv_size+" : : ");
+                                    byte c;
+                                    stopWorker = true;
+                                    for (int i = 0; i < buffer.size(); i++) {
+                                        c = buffer.get(i);
+                                        Filedata.add(c);
+                                    }
+                                    //Log.e("416", "Filedata SIZE :: " + Filedata.size() + " ::");
+
+                                    String storage = Environment.getExternalStorageDirectory().getAbsolutePath() + "/temp/";
+                                    String Files = storage + "bufferinfo.txt";
+                                    File file = new File(storage);
+                                    if (!file.exists())  // 원하는 경로에 폴더가 있는지 확인
+                                        file.mkdirs();
+
+                                    FileOutputStream ost = new FileOutputStream(new File(Files));
+                                    ost.write(toPrimitives(Filedata));
+                                    ost.flush();
+                                    ost.close();
+                                    //Log.e("416", "Filedata SIZE :: " + Filedata.size() + " :: STORAGE ::"+storage);
+                                    handler.post(new Runnable() {
+                                        public void run() {
+                                            mV_info2.setText("Success data received :: try (" + Connect_try + ")");
+                                            Log.e("0502", "FILE CREATED :   c_recv_size : " + c_recv_size);
+                                            c_recv_size = 0;
+                                        }
+                                    });
                                 }
-                                //Log.e("416", "Filedata SIZE :: " + Filedata.size() + " ::");
-
-                                String storage = Environment.getExternalStorageDirectory().getAbsolutePath()+"/temp/";
-                                String Files = storage+"bufferinfo.txt";
-                                File file = new File(storage);
-                                if( !file.exists() )  // 원하는 경로에 폴더가 있는지 확인
-                                    file.mkdirs();
-
-                                FileOutputStream ost = new FileOutputStream(new File(Files));
-                                ost.write(toPrimitives(Filedata));
-                                ost.flush();
-                                ost.close();
-                                //Log.e("416", "Filedata SIZE :: " + Filedata.size() + " :: STORAGE ::"+storage);
                             }
                         }
                     } catch (IOException ex) {
@@ -580,8 +611,43 @@ public class MainActivity extends AppCompatActivity
         }
         return bytes;
     }
-
     int research =0;
+
+    public static int parseInt(String binary) {
+        if (binary.length() < Integer.SIZE) return Integer.parseInt(binary, 2);
+        int result = 0;
+        byte[] bytes = binary.getBytes();
+        for (int i = 0; i < bytes.length; i++) {
+            if (bytes[i] == 49) {
+                result = result | (1 << (bytes.length - 1 - i));
+            }
+        }
+        return result;
+    }
+    public int RECV_TOTAL_SIZE(List<Byte> bf) {
+        int Totalsize = 0;
+
+        ByteBuffer by = null;
+        by = ByteBuffer.allocate(32);
+        for (int j = 0; j < 32; j++) {
+            byte c = bf.get(j);
+            by.put(c);
+        }
+        total_size_temp = by.array();
+        String temp = bytesToString(total_size_temp);
+        Totalsize = parseInt(temp);
+
+        return Totalsize;
+    }
+    public static String bytesToString(byte[] b) {
+        try {
+            String s1 = new String (b,"UTF-8");
+            return s1;
+        } catch (UnsupportedEncodingException ex) {
+            ex.printStackTrace();
+        }
+        return null;
+    }
 
     public void msgDialog(int i, String e){
     final String msg = e;

@@ -53,6 +53,7 @@ public class BufferRead  extends AppCompatActivity
     Context context;
     FileInputStream fis;
     private final int SOCKET_FILENAMESIZE = 32;
+    private final int SOCKET_TOTAL_SIZE = 32;
     private final int SOCKET_FILESIZE = 32;
     private final int REQ_CODE_GALLERY =100;
     private ArrayAdapter<String> ImageAdapter;
@@ -83,57 +84,72 @@ public class BufferRead  extends AppCompatActivity
 
         if(file!=null) {
             try {
+                byte[] total_size_temp = new byte[SOCKET_FILENAMESIZE];
+                int i_total_size=0;
+
                 byte[] nameSizetemp = new byte[SOCKET_FILENAMESIZE];
                 int file_namesize=0;
+
                 byte[] filename;
                 String file_name;
+
                 byte[] fileSizetemp = new byte[SOCKET_FILESIZE];
                 int file_size = 0;
+
                 byte[] imgfile;
                 byte[] totalbuffer;
                 String temp;
-                ByteBuffer nameSizebuf=null, filenamebuf = null, filesizebuf=null, filebuf=null;
+                ByteBuffer nameSizebuf=null, filenamebuf = null, filesizebuf=null, filebuf=null, total_size=null;
 
                 fis =  new FileInputStream(new File(Files));
-               // Log.e("FILE", "Total file size to read (in bytes) : " + fis.available());
+                Log.e("FILE", "Total file size to read (in bytes) : " + fis.available());
                 FileChannel cin = fis.getChannel();
                 int check = 0 ;
-                do{
-                  // Log.e("FILE","FILE CREATE START REMAIN CHANNEL : "+cin.size());
-                   nameSizebuf = ByteBuffer.allocate(SOCKET_FILENAMESIZE);
-                   check = cin.read(nameSizebuf);
-                    if(check == -1){
+                total_size = ByteBuffer.allocate((SOCKET_TOTAL_SIZE));
+                check = cin.read(total_size);
+                if (check == -1) {
+
+                }else{
+                    total_size_temp = total_size.array();
+                    temp = bytesToString(total_size_temp);
+                    i_total_size = parseInt(temp);
+                }
+                do {
+                    Log.e("FILE", "FILE CREATE START REMAIN CHANNEL : " + cin.size());
+
+                    nameSizebuf = ByteBuffer.allocate(SOCKET_FILENAMESIZE);
+                    check = cin.read(nameSizebuf);
+                    if (check == -1) {
                         break;
                     }
-                    nameSizetemp=nameSizebuf.array();
-                   temp = bytesToString(nameSizetemp);
+                    nameSizetemp = nameSizebuf.array();
+                    temp = bytesToString(nameSizetemp);
+                    file_namesize = parseInt(temp);
+                    Log.e("FILE", "(1)FILE NAME SIZE : " + file_namesize);
 
-                   file_namesize = parseInt(temp);
-                   //Log.e("FILE","(1)FILE NAME SIZE : "+file_namesize);
+                    filename = new byte[file_namesize];
+                    filenamebuf = ByteBuffer.allocate(file_namesize);
+                    cin.read(filenamebuf);
+                    filename = filenamebuf.array();
+                    file_name = new String(filename, "UTF-8");
+                    Log.e("FILE", "(2)FILE NAME SIZE : " + file_namesize + ", FILE NAME : " + file_name);
 
-                   filename = new byte[file_namesize];
-                   filenamebuf = ByteBuffer.allocate(file_namesize);
-                   cin.read(filenamebuf);
-                   filename = filenamebuf.array();
-                   file_name = new String(filename,"UTF-8");
-                  // Log.e("FILE","(2)FILE NAME SIZE : "+file_namesize+", FILE NAME : "+file_name);
+                    filesizebuf = ByteBuffer.allocate(SOCKET_FILESIZE);
+                    cin.read(filesizebuf);
+                    fileSizetemp = filesizebuf.array();
+                    temp = bytesToString(fileSizetemp);
+                    file_size = parseInt(temp);
+                    Log.e("FILE", "(3)FILE NAME SIZE : " + file_namesize + ", FILE NAME : " + file_name + ", FILE SIZE : " + file_size);
 
-                   filesizebuf = ByteBuffer.allocate(SOCKET_FILESIZE);
-                   cin.read(filesizebuf);
-                   fileSizetemp=filesizebuf.array();
-                   temp = bytesToString(fileSizetemp);
-                   file_size = parseInt(temp);
-                   //Log.e("FILE","(3)FILE NAME SIZE : "+file_namesize+", FILE NAME : "+file_name+", FILE SIZE : "+file_size);
-
-                   imgfile = new byte[file_size];
-                   filebuf = ByteBuffer.allocate(file_size);
-                   cin.read(filebuf);
-                   filebuf.flip();
-                   FileOutputStream fos = new FileOutputStream(new File(storage + file_name));
-                   FileChannel cout = fos.getChannel();
-                   cout.write(filebuf);
-                   //Log.e("FILE","(4)FILE NAME SIZE : "+file_namesize+", FILE NAME : "+file_name+", FILE SIZE : "+file_size+",  FILE CREATE");
-               }
+                    imgfile = new byte[file_size];
+                    filebuf = ByteBuffer.allocate(file_size);
+                    cin.read(filebuf);
+                    filebuf.flip();
+                    FileOutputStream fos = new FileOutputStream(new File(storage + file_name));
+                    FileChannel cout = fos.getChannel();
+                    cout.write(filebuf);
+                    Log.e("FILE", "(4)FILE NAME SIZE : " + file_namesize + ", FILE NAME : " + file_name + ", FILE SIZE : " + file_size + ",  FILE CREATE");
+                }
                while(cin.size()>0);
                 cin.close();
                 nameSizebuf.flip();
@@ -192,15 +208,15 @@ public class BufferRead  extends AppCompatActivity
         navigationView.setNavigationItemSelectedListener(this);
     }
 
-    private String[] getTitleList() //알아 보기 쉽게 메소드 부터 시작합니다.
+    private String[] getTitleList()
     {
         try
         {
-            FilenameFilter fileFilter = new FilenameFilter()  //이부분은 특정 확장자만 가지고 오고 싶을 경우 사용하시면 됩니다.
+            FilenameFilter fileFilter = new FilenameFilter()
             {
                 public boolean accept(File dir, String name)
                 {
-                    return name.endsWith("jpg"); //이 부분에 사용하고 싶은 확장자를 넣으시면 됩니다.
+                    return name.endsWith("jpg");
                 } //end accept
             };
             File file = new File(storage); //경로를 SD카드로 잡은거고 그 안에 있는 A폴더 입니다. 입맛에 따라 바꾸세요.
