@@ -62,7 +62,7 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="288dp"
+        android:layout_height="wrap_content"
         android:orientation="vertical">
 
         <LinearLayout
@@ -96,16 +96,33 @@
                 android:layout_weight="1"
                 android:text="Reseraching Trap..." />
         </LinearLayout>
+
+
     </LinearLayout>
 
-    <Button
-        android:id="@+id/button"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@drawable/side_nav_bar"
-        android:text="START"
-        android:textColor="@android:color/white"
-        tools:background="@drawable/side_nav_bar" />
+        android:layout_height="match_parent">
+
+        <ProgressBar
+            android:id="@+id/progress"
+            android:layout_width="100dp"
+            android:layout_height="130dp"
+            android:layout_gravity="center"
+
+
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:background="@drawable/side_nav_bar"
+            android:text="START"
+            android:textColor="@android:color/white"
+            tools:background="@drawable/side_nav_bar" />
+    </FrameLayout>
 
 </LinearLayout>
 
