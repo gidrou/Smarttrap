@@ -1,10 +1,12 @@
 package test.gcm.com.myapplication;
 
+import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -13,9 +15,12 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.StrictMode;
+import android.provider.ContactsContract;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v7.app.AlertDialog;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -32,13 +37,20 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLEncoder;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -51,18 +63,15 @@ public class MainActivity extends AppCompatActivity
 
     private final int REQUEST_BLUETOOTH_ENABLE = 100;
     private final int ERROR_MEASSAGE = 1;
-    private final int RESEARCH_MESSAGE =2;
+    private final int RESEARCH_MESSAGE = 2;
     private final int QUIT_MEASSAGE = 3;
     private Boolean Search = false;
-
+    private  Boolean DataSuccess  = false;
     public static Context mContext;
     public static AppCompatActivity activity;
     static BluetoothDevice[] devices;
 
-    TextView myLabel;
-    TextView mRecv;
     TextView mV_info,mV_info2;
-    EditText myTextbox;
     Button btn;
     private ProgressBar progress;
 
@@ -77,6 +86,7 @@ public class MainActivity extends AppCompatActivity
     final Handler handler = new Handler(Looper.getMainLooper());
     Boolean isButton=true;
     View v;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -111,7 +121,12 @@ public class MainActivity extends AppCompatActivity
 
             devices = pairedDevices.toArray(new BluetoothDevice[0]);
            /* ((MainActivity) MainActivity.mContext).doConnect(devices[0]);*/
-            mV_info.setText(devices[0] + "\n");
+           if(devices.length != 0){
+               mV_info.setText(devices[0] + "\n");
+           }else {
+               mV_info.setText("페어링 디바이스 정보가 없습니다. "+devices.length
+               );
+           }
         }
 
 
@@ -145,6 +160,8 @@ public class MainActivity extends AppCompatActivity
                     isButton = true;
                     onstop();
                     new CloseTask().execute();
+                    insertToDatabase("1","0");
+                    Log.e("Insert"," 1, 3");
                     Search=false;
                 }
             }
@@ -156,7 +173,7 @@ public class MainActivity extends AppCompatActivity
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+                Snackbar.make(view, "", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
             }
         });
@@ -169,23 +186,53 @@ public class MainActivity extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+        //"id", "status" id = device[list].
+        insertToDatabase("1","1");
+        Log.e("Insert"," 1, 1");
     }
 
     private void onloading() {
         progress.setVisibility(View.VISIBLE);
     }
-
     private void onstop(){
         progress.setVisibility(View.GONE);
     }
-
-    private void ListPairedDevices()
-    {
+    private void ListPairedDevices() {
         Set<BluetoothDevice> mPairedDevices = mBluetoothAdapter.getBondedDevices();
-        if (mPairedDevices.size() > 0)
-        {
+        if (mPairedDevices.size() > 0) {
         }
+
     }
+
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+
+        if ((keyCode == KeyEvent.KEYCODE_BACK)) {
+            AlertDialog.Builder d = new AlertDialog.Builder(MainActivity.this);
+            d.setTitle("종료");
+            d.setMessage("정말 종료 하시겠습니꺄?");
+            d.setIcon(R.drawable.ic_menu_send);
+            d.setPositiveButton("예", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) { // TODO Auto-generated method stub
+                    insertToDatabase("1","0");
+                    MainActivity.this.finish();
+                }
+            });
+            d.setNegativeButton("아니요", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) { // TODO Auto-generated method stub
+                    dialog.cancel();
+                }
+            });
+            d.show();
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
+
 
     @Override
     public void onBackPressed() {
@@ -246,6 +293,11 @@ public class MainActivity extends AppCompatActivity
         return true;
     }
 
+    @Override
+    protected void onDestroy(){
+        insertToDatabase("1","0");
+        super.onDestroy();
+    }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if(requestCode == REQUEST_BLUETOOTH_ENABLE){
@@ -358,6 +410,8 @@ public class MainActivity extends AppCompatActivity
                         public void run()
                         {
                             mV_info2.setText("SUCCESS SOCKET OPEN :: try ("+Connect_try+")");
+                            insertToDatabase("1","2");
+                            Log.e("Insert"," 1, 2");
                         }
                     });
                     Thread.sleep(3000);
@@ -369,6 +423,8 @@ public class MainActivity extends AppCompatActivity
                         public void run()
                         {
                             mV_info2.setText("SOCKET might closed :: try ("+Connect_try+")");
+                            insertToDatabase("1","5");
+                            Log.e("Insert"," 1, 5");
                         }
                     });
                 }
@@ -380,7 +436,8 @@ public class MainActivity extends AppCompatActivity
                     final Handler handler = new Handler(Looper.getMainLooper());
                     mmSocket = new FallbackBluetoothSocket(mmSocket.getUnderlyingSocket());
                     Thread.sleep(100);
-
+                    insertToDatabase("1","6");
+                    Log.e("Insert"," 1, 6");
                     //재접속을 시도합니다.
                     mmSocket.connect();
 
@@ -393,6 +450,8 @@ public class MainActivity extends AppCompatActivity
                             public void run()
                             {
                                 mV_info2.setText("SUCCESS SOCKET OPEN :: try ("+Connect_try+")");
+                                insertToDatabase("1","2");
+                                Log.e("Insert"," 1, 2");
                             }
                         });
                         Thread.sleep(3000);
@@ -404,6 +463,8 @@ public class MainActivity extends AppCompatActivity
                             public void run()
                             {
                                 mV_info2.setText("SOCKET might closed :: try ("+Connect_try+")");
+                                insertToDatabase("1","5");
+                                Log.e("Insert"," 1, 5");
                             }
                         });
                     }
@@ -446,8 +507,12 @@ public class MainActivity extends AppCompatActivity
                 try{mmOutputStream.close();}catch(Throwable t){/*ignore*/}
                 try{mmInputStream.close();}catch(Throwable t){/*ignore*/}
                 mmSocket.close();
+                insertToDatabase("1","0");
+                Log.e("Insert"," 1, 0");
                 FindBLUE();
             } catch (Throwable t) {
+                insertToDatabase("1","6");
+                Log.e("Insert"," 1, 6");
                 return t;
             }
             return null;
@@ -471,6 +536,7 @@ public class MainActivity extends AppCompatActivity
 
     public class FallbackBluetoothSocket extends NativeBluetoothSocket {
         private BluetoothSocket fallbackSocket;
+
         public FallbackBluetoothSocket(BluetoothSocket tmp) throws FallbackException {
             super(tmp);
             try
@@ -483,6 +549,8 @@ public class MainActivity extends AppCompatActivity
             }
             catch (Exception e)
             {
+                insertToDatabase("1","6");
+                Log.e("Insert"," 1, 6");
                 throw new FallbackException(e);
             }
         }
@@ -518,15 +586,14 @@ public class MainActivity extends AppCompatActivity
     int read = 0;
     int count = 0;
     int c_recv_size = 0;
-    int n_recv_size = 0;
-    byte[] total_size_temp = new byte[32];
+
     void beginBuffer() {
         stopWorker = false;
         //문자열 수신 쓰레드.
         workerThread = new Thread(new Runnable() {
             List<Byte> buffer = new ArrayList<>();
             List<Byte> Filedata = new ArrayList<>();
-            int temp = 0;
+            int TOTAL_SIZE = 0;
             @Override
             public void run() {
                 while (!Thread.currentThread().isInterrupted() && !stopWorker) {
@@ -544,56 +611,56 @@ public class MainActivity extends AppCompatActivity
                                 buffer.add(packetBytes[i]);
                                 count = 0;
                             }
-                            temp = RECV_TOTAL_SIZE(buffer);
+                            TOTAL_SIZE = RECV_TOTAL_SIZE(buffer);
                         }
-                        else{
-
-
+                        else {
                             count++;
-
-                            if(count>100) {
-                                if (c_recv_size <= temp) {
-                                    //onstop();
+                            if (count > 100) {
+                                if (c_recv_size < TOTAL_SIZE) {
                                     new CloseTask().execute();
-                                    //FindBLUE();
-
                                     c_recv_size = 0;
+                                    count = 0;
+                                    //Log.e("510", " TOTAL_SIZE ( " +TOTAL_SIZE+ " )" + "> c_recv_size ( "+ c_recv_size + " ) : : ");
+                                    insertToDatabase("1", "6");
+                                    Log.e("Insert", "1, 6");
 
-                                    count=0;
-                                    Log.e("COUNT"," Count > 100 : "+c_recv_size+" : : "+temp);
                                 } else {
-                                    Log.e("COUNT"," Count < 100 : "+count);
-                                    Log.e("temp"," temp > recv_size : "+temp+" :: "+c_recv_size+" : : ");
+                                    //Log.e("510", " TOTAL_SIZE ( " +TOTAL_SIZE+ " )" + "== c_recv_size ( "+ c_recv_size + " ) : : ");
                                     byte c;
                                     stopWorker = true;
                                     for (int i = 0; i < buffer.size(); i++) {
                                         c = buffer.get(i);
                                         Filedata.add(c);
                                     }
-                                    //Log.e("416", "Filedata SIZE :: " + Filedata.size() + " ::");
 
+                                    //Log.e("416", "Filedata SIZE :: " + Filedata.size() + " ::");
                                     String storage = Environment.getExternalStorageDirectory().getAbsolutePath() + "/temp/";
                                     String Files = storage + "bufferinfo.txt";
                                     File file = new File(storage);
                                     if (!file.exists())  // 원하는 경로에 폴더가 있는지 확인
                                         file.mkdirs();
-
                                     FileOutputStream ost = new FileOutputStream(new File(Files));
                                     ost.write(toPrimitives(Filedata));
                                     ost.flush();
                                     ost.close();
+
                                     //Log.e("416", "Filedata SIZE :: " + Filedata.size() + " :: STORAGE ::"+storage);
                                     handler.post(new Runnable() {
                                         public void run() {
-                                            mV_info2.setText("Success data received :: try (" + Connect_try + ")");
-                                            Log.e("0502", "FILE CREATED :   c_recv_size : " + c_recv_size);
+                                            mV_info2.setText("Success data received :: try (" + TOTAL_SIZE + ")");
                                             c_recv_size = 0;
                                         }
                                     });
+                                    DataSuccess = true;
+                                    TOTAL_SIZE = 0;
+                                    insertToDatabase("1", "3");
+                                    //Log.e("Insert", "1, 3");
                                 }
                             }
                         }
                     } catch (IOException ex) {
+                        insertToDatabase("1","6");
+                        //Log.e("Insert"," 1, 6");
                         stopWorker = true;
                     }
                 }
@@ -624,6 +691,8 @@ public class MainActivity extends AppCompatActivity
         }
         return result;
     }
+
+    byte[] total_size_temp = new byte[32];
     public int RECV_TOTAL_SIZE(List<Byte> bf) {
         int Totalsize = 0;
 
@@ -639,18 +708,20 @@ public class MainActivity extends AppCompatActivity
 
         return Totalsize;
     }
+
     public static String bytesToString(byte[] b) {
         try {
             String s1 = new String (b,"UTF-8");
             return s1;
         } catch (UnsupportedEncodingException ex) {
+
             ex.printStackTrace();
         }
         return null;
     }
 
     public void msgDialog(int i, String e){
-    final String msg = e;
+        final String msg = e;
         if(i==ERROR_MEASSAGE) {
             handler.post(new Runnable()
             {
@@ -691,6 +762,64 @@ public class MainActivity extends AppCompatActivity
                 }
             });
         }
+    }
+
+    private void insertToDatabase(String id, String status){
+        class InsertData extends AsyncTask<String, Void, String> {
+            // ProgressDialog loading;
+
+            @Override
+            protected void onPreExecute() {
+                super.onPreExecute();
+                //loading = ProgressDialog.show(MainActivity.this, "Please Wait", null, true, true);
+            }
+
+            @Override
+            protected void onPostExecute(String s) {
+                super.onPostExecute(s);
+                //loading.dismiss();
+                Toast.makeText(getApplicationContext(),s,Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            protected String doInBackground(String... params) {
+
+                try {
+                    String id = (String) params[0];
+                    String status = (String) params[1];
+
+                    String link = "http://220.149.235.139/test.php";
+                    String data = URLEncoder.encode("id", "UTF-8") + "=" + URLEncoder.encode(id, "UTF-8");
+                    data += "&" + URLEncoder.encode("status", "UTF-8") + "=" + URLEncoder.encode(status, "UTF-8");
+
+                    URL url = new URL(link);
+                    URLConnection conn = url.openConnection();
+
+                    conn.setDoOutput(true);
+                    OutputStreamWriter wr = new OutputStreamWriter(conn.getOutputStream());
+
+                    wr.write(data);
+                    wr.flush();
+
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+
+                    StringBuilder sb = new StringBuilder();
+                    String line = null;
+
+                    // Read Server Response
+                    while ((line = reader.readLine()) != null) {
+                        sb.append(line);
+                        break;
+                    }
+                    return sb.toString();
+                } catch (Exception e) {
+                    insertToDatabase("1","6");
+                    return new String("Exception: " + e.getMessage());
+                }
+            }
+        }
+        InsertData task = new InsertData();
+        task.execute(id,status);
     }
 
 }

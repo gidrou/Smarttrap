@@ -108,7 +108,6 @@ public class BufferRead  extends AppCompatActivity
                 total_size = ByteBuffer.allocate((SOCKET_TOTAL_SIZE));
                 check = cin.read(total_size);
                 if (check == -1) {
-
                 }else{
                     total_size_temp = total_size.array();
                     temp = bytesToString(total_size_temp);
@@ -150,7 +149,7 @@ public class BufferRead  extends AppCompatActivity
                     cout.write(filebuf);
                     Log.e("FILE", "(4)FILE NAME SIZE : " + file_namesize + ", FILE NAME : " + file_name + ", FILE SIZE : " + file_size + ",  FILE CREATE");
                 }
-               while(cin.size()>0);
+                while(cin.size()>0);
                 cin.close();
                 nameSizebuf.flip();
                 filenamebuf.flip();
