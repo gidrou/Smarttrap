@@ -25,7 +25,18 @@
         android:layout_height="85sp"
         android:contentDescription=""
         android:paddingBottom="15sp"
+        android:scaleType="fitXY"
         app:srcCompat="@mipmap/logo"
+        tools:ignore="ContentDescription" />
+
+    <ImageView
+        android:id="@+id/imageView4"
+        android:layout_width="match_parent"
+        android:layout_height="85sp"
+        android:contentDescription=""
+        android:paddingBottom="15sp"
+        android:scaleType="fitXY"
+        app:srcCompat="@mipmap/dk_logo"
         tools:ignore="ContentDescription" />
 
     <LinearLayout

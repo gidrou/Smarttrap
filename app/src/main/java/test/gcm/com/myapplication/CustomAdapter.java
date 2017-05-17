@@ -1,5 +1,4 @@
 package test.gcm.com.myapplication;
-//클래스의 이름은 다른 이름이어도 상관없지만 상속만 BaseAdapter를 잘 받으면 됩니다.
 
 import android.view.LayoutInflater;
 import android.view.View;

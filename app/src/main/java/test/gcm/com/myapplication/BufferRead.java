@@ -67,7 +67,6 @@ public class BufferRead  extends AppCompatActivity
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.buffer_reader);
-        Intent intent = getIntent();
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar3);
         setSupportActionBar(toolbar);
         buf_layout = (LinearLayout) findViewById(R.id.buffer_layout);
@@ -82,80 +81,79 @@ public class BufferRead  extends AppCompatActivity
         if( !file.exists() )  // 원하는 경로에 폴더가 있는지 확인
             file.mkdirs();
 
-        if(file!=null) {
+        if(Files!=null) {
             try {
+                fis =  new FileInputStream(new File(Files));
+                Log.e("FILE", "Total file size to read (in bytes) : " + fis.available());
+
                 byte[] total_size_temp = new byte[SOCKET_FILENAMESIZE];
                 int i_total_size=0;
-
                 byte[] nameSizetemp = new byte[SOCKET_FILENAMESIZE];
                 int file_namesize=0;
-
                 byte[] filename;
                 String file_name;
-
                 byte[] fileSizetemp = new byte[SOCKET_FILESIZE];
                 int file_size = 0;
-
                 byte[] imgfile;
                 byte[] totalbuffer;
                 String temp;
-                ByteBuffer nameSizebuf=null, filenamebuf = null, filesizebuf=null, filebuf=null, total_size=null;
+                ByteBuffer nameSizebuf = null, filenamebuf = null, filesizebuf=null, filebuf=null, total_size=null;
 
-                fis =  new FileInputStream(new File(Files));
-                Log.e("FILE", "Total file size to read (in bytes) : " + fis.available());
                 FileChannel cin = fis.getChannel();
-                int check = 0 ;
                 total_size = ByteBuffer.allocate((SOCKET_TOTAL_SIZE));
+                int check = 0;
                 check = cin.read(total_size);
                 if (check == -1) {
-                }else{
+                }else {
+
                     total_size_temp = total_size.array();
                     temp = bytesToString(total_size_temp);
                     i_total_size = parseInt(temp);
-                }
-                do {
-                    Log.e("FILE", "FILE CREATE START REMAIN CHANNEL : " + cin.size());
 
-                    nameSizebuf = ByteBuffer.allocate(SOCKET_FILENAMESIZE);
-                    check = cin.read(nameSizebuf);
-                    if (check == -1) {
-                        break;
+                    do {
+                        Log.e("FILE", "FILE CREATE START REMAIN CHANNEL : " + cin.size());
+
+                        nameSizebuf = ByteBuffer.allocate(SOCKET_FILENAMESIZE);
+                        check = cin.read(nameSizebuf);
+                        if (check == -1) {
+                            break;
+                        }
+                        nameSizetemp = nameSizebuf.array();
+                        temp = bytesToString(nameSizetemp);
+                        file_namesize = parseInt(temp);
+                        //Log.e("FILE", "(1)FILE NAME SIZE : " + file_namesize);
+
+                        filename = new byte[file_namesize];
+                        filenamebuf = ByteBuffer.allocate(file_namesize);
+                        cin.read(filenamebuf);
+                        filename = filenamebuf.array();
+                        file_name = new String(filename, "UTF-8");
+                        //Log.e("FILE", "(2)FILE NAME SIZE : " + file_namesize + ", FILE NAME : " + file_name);
+
+                        filesizebuf = ByteBuffer.allocate(SOCKET_FILESIZE);
+                        cin.read(filesizebuf);
+                        fileSizetemp = filesizebuf.array();
+                        temp = bytesToString(fileSizetemp);
+                        file_size = parseInt(temp);
+                        //Log.e("FILE", "(3)FILE NAME SIZE : " + file_namesize + ", FILE NAME : " + file_name + ", FILE SIZE : " + file_size);
+
+                        imgfile = new byte[file_size];
+                        filebuf = ByteBuffer.allocate(file_size);
+                        cin.read(filebuf);
+                        filebuf.flip();
+                        FileOutputStream fos = new FileOutputStream(new File(storage + file_name));
+                        FileChannel cout = fos.getChannel();
+                        cout.write(filebuf);
+                        //Log.e("FILE", "(4)FILE NAME SIZE : " + file_namesize + ", FILE NAME : " + file_name + ", FILE SIZE : " + file_size + ",  FILE CREATE");
                     }
-                    nameSizetemp = nameSizebuf.array();
-                    temp = bytesToString(nameSizetemp);
-                    file_namesize = parseInt(temp);
-                    Log.e("FILE", "(1)FILE NAME SIZE : " + file_namesize);
 
-                    filename = new byte[file_namesize];
-                    filenamebuf = ByteBuffer.allocate(file_namesize);
-                    cin.read(filenamebuf);
-                    filename = filenamebuf.array();
-                    file_name = new String(filename, "UTF-8");
-                    Log.e("FILE", "(2)FILE NAME SIZE : " + file_namesize + ", FILE NAME : " + file_name);
-
-                    filesizebuf = ByteBuffer.allocate(SOCKET_FILESIZE);
-                    cin.read(filesizebuf);
-                    fileSizetemp = filesizebuf.array();
-                    temp = bytesToString(fileSizetemp);
-                    file_size = parseInt(temp);
-                    Log.e("FILE", "(3)FILE NAME SIZE : " + file_namesize + ", FILE NAME : " + file_name + ", FILE SIZE : " + file_size);
-
-                    imgfile = new byte[file_size];
-                    filebuf = ByteBuffer.allocate(file_size);
-                    cin.read(filebuf);
+                    while (cin.size() > 0);
+                    cin.close();
+                    nameSizebuf.flip();
+                    filenamebuf.flip();
+                    filesizebuf.flip();
                     filebuf.flip();
-                    FileOutputStream fos = new FileOutputStream(new File(storage + file_name));
-                    FileChannel cout = fos.getChannel();
-                    cout.write(filebuf);
-                    Log.e("FILE", "(4)FILE NAME SIZE : " + file_namesize + ", FILE NAME : " + file_name + ", FILE SIZE : " + file_size + ",  FILE CREATE");
                 }
-                while(cin.size()>0);
-                cin.close();
-                nameSizebuf.flip();
-                filenamebuf.flip();
-                filesizebuf.flip();
-                filebuf.flip();;
-
             } catch (FileNotFoundException e) {
                 Log.e("420","ERROR FILE NOT FOUND1");
             } catch (IOException e) {
@@ -174,19 +172,24 @@ public class BufferRead  extends AppCompatActivity
             Log.e("420","FILE NULL");
         }
 
-
         String[] filelist = getTitleList();
-        for(int i=0; i<filelist.length; i++){
-            Bitmap bm = BitmapFactory.decodeFile(storage+filelist[i]);
-            datas.add(new ImageData(filelist[i],bm));
-        }
-        CustomAdapter adapter = new CustomAdapter(getLayoutInflater(), datas);
-        ImageListView.setAdapter(adapter);
 
-        if(adapter!= null){
-            text_info.setText("Reading success.");
-            text_info.setTypeface(text_info.getTypeface(), Typeface.BOLD);
+        if(filelist!=null) {
+            for (int i = 0; i < filelist.length; i++) {
+                Bitmap bm = BitmapFactory.decodeFile(storage + filelist[i]);
+                datas.add(new ImageData(filelist[i], bm));
+            }
+            CustomAdapter adapter = new CustomAdapter(getLayoutInflater(), datas);
+            ImageListView.setAdapter(adapter);
+
+            if (adapter != null) {
+                text_info.setText("Reading success.");
+                text_info.setTypeface(text_info.getTypeface(), Typeface.BOLD);
+            }
+        }else{
+            text_info.setText("Reading Fail.");
         }
+
 
         FloatingActionButton fab2 = (FloatingActionButton) findViewById(R.id.fab3);
         fab2.setOnClickListener(new View.OnClickListener() {
@@ -232,7 +235,6 @@ public class BufferRead  extends AppCompatActivity
         }//end catch()
     }//end getTitleList
 
-
     @Override
     public void onBackPressed() {
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout3);
@@ -266,7 +268,6 @@ public class BufferRead  extends AppCompatActivity
     }
 
     @SuppressWarnings("StatementWithEmptyBody")
-
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.

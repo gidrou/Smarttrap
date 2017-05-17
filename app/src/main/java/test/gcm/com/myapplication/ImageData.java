@@ -1,13 +1,12 @@
 package test.gcm.com.myapplication;
-
 import android.graphics.Bitmap;
-
 /**
  * Created by JungYoungHoon on 2017-04-21.
- */
+*/
+
 public class ImageData {
-        String name;    //이름 저장
-        Bitmap bitmap;      //국기 이미지의 리소스 아이디
+        String name;    //이름
+        Bitmap bitmap;      //이미지의 리소스 아이디
         public ImageData(String name, Bitmap bitmap) {
             // TODO Auto-generated constructor stub
             //생성자함수로 전달받은 Member의 정보를 멤버변수에 저장..
@@ -26,5 +25,4 @@ public class ImageData {
         public Bitmap getImgId() {
             return bitmap;
         }
-    }
-
+}

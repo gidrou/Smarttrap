@@ -215,14 +215,16 @@ public class MainActivity extends AppCompatActivity
             d.setIcon(R.drawable.ic_menu_send);
             d.setPositiveButton("예", new DialogInterface.OnClickListener() {
                 @Override
-                public void onClick(DialogInterface dialog, int which) { // TODO Auto-generated method stub
+                public void onClick(DialogInterface dialog, int which) {
+                    // TODO Auto-generated method stub
                     insertToDatabase("1","0");
                     MainActivity.this.finish();
                 }
             });
             d.setNegativeButton("아니요", new DialogInterface.OnClickListener() {
                 @Override
-                public void onClick(DialogInterface dialog, int which) { // TODO Auto-generated method stub
+                public void onClick(DialogInterface dialog, int which) {
+                    // TODO Auto-generated method stub
                     dialog.cancel();
                 }
             });
@@ -400,7 +402,6 @@ public class MainActivity extends AppCompatActivity
                 final Handler handler = new Handler(Looper.getMainLooper());
                 //7. 블루투스 장치로 연결을 시도합니다.
                 mmSocket.connect();
-
                 //8. 소켓에 대한 입출력 스트림을 가져옵니다.
                 mmOutputStream = mmSocket.getOutputStream();
                 mmInputStream = mmSocket.getInputStream();
@@ -437,7 +438,6 @@ public class MainActivity extends AppCompatActivity
                     mmSocket = new FallbackBluetoothSocket(mmSocket.getUnderlyingSocket());
                     Thread.sleep(100);
                     insertToDatabase("1","6");
-                    Log.e("Insert"," 1, 6");
                     //재접속을 시도합니다.
                     mmSocket.connect();
 
@@ -451,7 +451,6 @@ public class MainActivity extends AppCompatActivity
                             {
                                 mV_info2.setText("SUCCESS SOCKET OPEN :: try ("+Connect_try+")");
                                 insertToDatabase("1","2");
-                                Log.e("Insert"," 1, 2");
                             }
                         });
                         Thread.sleep(3000);
@@ -464,7 +463,6 @@ public class MainActivity extends AppCompatActivity
                             {
                                 mV_info2.setText("SOCKET might closed :: try ("+Connect_try+")");
                                 insertToDatabase("1","5");
-                                Log.e("Insert"," 1, 5");
                             }
                         });
                     }
@@ -508,11 +506,9 @@ public class MainActivity extends AppCompatActivity
                 try{mmInputStream.close();}catch(Throwable t){/*ignore*/}
                 mmSocket.close();
                 insertToDatabase("1","0");
-                Log.e("Insert"," 1, 0");
                 FindBLUE();
             } catch (Throwable t) {
                 insertToDatabase("1","6");
-                Log.e("Insert"," 1, 6");
                 return t;
             }
             return null;
@@ -550,7 +546,6 @@ public class MainActivity extends AppCompatActivity
             catch (Exception e)
             {
                 insertToDatabase("1","6");
-                Log.e("Insert"," 1, 6");
                 throw new FallbackException(e);
             }
         }
@@ -593,7 +588,7 @@ public class MainActivity extends AppCompatActivity
         workerThread = new Thread(new Runnable() {
             List<Byte> buffer = new ArrayList<>();
             List<Byte> Filedata = new ArrayList<>();
-            int TOTAL_SIZE = 0;
+            int TOTAL_SIZE = 9999;
             @Override
             public void run() {
                 while (!Thread.currentThread().isInterrupted() && !stopWorker) {
@@ -611,6 +606,7 @@ public class MainActivity extends AppCompatActivity
                                 buffer.add(packetBytes[i]);
                                 count = 0;
                             }
+
                             TOTAL_SIZE = RECV_TOTAL_SIZE(buffer);
                         }
                         else {
@@ -620,12 +616,12 @@ public class MainActivity extends AppCompatActivity
                                     new CloseTask().execute();
                                     c_recv_size = 0;
                                     count = 0;
-                                    //Log.e("510", " TOTAL_SIZE ( " +TOTAL_SIZE+ " )" + "> c_recv_size ( "+ c_recv_size + " ) : : ");
-                                    insertToDatabase("1", "6");
-                                    Log.e("Insert", "1, 6");
+                                    Log.e("510", " TOTAL_SIZE ( " +TOTAL_SIZE+ " )" + "> c_recv_size ( "+ c_recv_size + " ) : : ");
+                                    insertToDatabase("1", "7");
+                                    Log.e("Insert", "1, 7");
 
                                 } else {
-                                    //Log.e("510", " TOTAL_SIZE ( " +TOTAL_SIZE+ " )" + "== c_recv_size ( "+ c_recv_size + " ) : : ");
+                                    Log.e("510", " TOTAL_SIZE ( " +TOTAL_SIZE+ " )" + "== c_recv_size ( "+ c_recv_size + " ) : : ");
                                     byte c;
                                     stopWorker = true;
                                     for (int i = 0; i < buffer.size(); i++) {
@@ -633,18 +629,20 @@ public class MainActivity extends AppCompatActivity
                                         Filedata.add(c);
                                     }
 
-                                    //Log.e("416", "Filedata SIZE :: " + Filedata.size() + " ::");
                                     String storage = Environment.getExternalStorageDirectory().getAbsolutePath() + "/temp/";
                                     String Files = storage + "bufferinfo.txt";
                                     File file = new File(storage);
                                     if (!file.exists())  // 원하는 경로에 폴더가 있는지 확인
                                         file.mkdirs();
                                     FileOutputStream ost = new FileOutputStream(new File(Files));
-                                    ost.write(toPrimitives(Filedata));
-                                    ost.flush();
-                                    ost.close();
+                                    if(ost !=null){
+                                        ost.write(toPrimitives(Filedata));
+                                        ost.flush();
+                                        ost.close();
+                                    }else {
+                                        Log.e("416", "Fail create File :: STORAGE ::"+ Files);
+                                    }
 
-                                    //Log.e("416", "Filedata SIZE :: " + Filedata.size() + " :: STORAGE ::"+storage);
                                     handler.post(new Runnable() {
                                         public void run() {
                                             mV_info2.setText("Success data received :: try (" + TOTAL_SIZE + ")");
@@ -694,19 +692,21 @@ public class MainActivity extends AppCompatActivity
 
     byte[] total_size_temp = new byte[32];
     public int RECV_TOTAL_SIZE(List<Byte> bf) {
-        int Totalsize = 0;
-
+        int Totalsize = 9999;
         ByteBuffer by = null;
-        by = ByteBuffer.allocate(32);
-        for (int j = 0; j < 32; j++) {
-            byte c = bf.get(j);
-            by.put(c);
+        if(bf.size()>32){
+            by = ByteBuffer.allocate(32);
+            for (int j = 0; j < 32; j++) {
+                byte c = bf.get(j);
+                by.put(c);
+            }
+            total_size_temp = by.array();
+            String temp = bytesToString(total_size_temp);
+            Totalsize = parseInt(temp);
+            return Totalsize;
+        }else{
+            return Totalsize;
         }
-        total_size_temp = by.array();
-        String temp = bytesToString(total_size_temp);
-        Totalsize = parseInt(temp);
-
-        return Totalsize;
     }
 
     public static String bytesToString(byte[] b) {
@@ -714,7 +714,6 @@ public class MainActivity extends AppCompatActivity
             String s1 = new String (b,"UTF-8");
             return s1;
         } catch (UnsupportedEncodingException ex) {
-
             ex.printStackTrace();
         }
         return null;
@@ -821,5 +820,4 @@ public class MainActivity extends AppCompatActivity
         InsertData task = new InsertData();
         task.execute(id,status);
     }
-
 }
