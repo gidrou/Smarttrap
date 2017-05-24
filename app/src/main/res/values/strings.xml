@@ -6,4 +6,5 @@
     <string name="Logo">향토유전자원연구소</string>
     <string name="action_settings">Settings</string>
     <string name="logo" />
+    <string name="title_activity_bio_contents">BioContentsActivity</string>
 </resources>

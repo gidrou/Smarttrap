@@ -60,21 +60,25 @@ import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
-
+    int suc = 0;
     private final int REQUEST_BLUETOOTH_ENABLE = 100;
     private final int ERROR_MEASSAGE = 1;
+    private final int ERROR_MESSAGE_DATAINPUT = 10;
+    private final int ERROR_MESSAGE_FILEINPUT = 11;
+
     private final int RESEARCH_MESSAGE = 2;
     private final int QUIT_MEASSAGE = 3;
+
+
+
     private Boolean Search = false;
     private  Boolean DataSuccess  = false;
     public static Context mContext;
     public static AppCompatActivity activity;
     static BluetoothDevice[] devices;
-
     TextView mV_info,mV_info2;
     Button btn;
     private ProgressBar progress;
-
     static BluetoothAdapter mBluetoothAdapter;
     BluetoothSocketWrapper  mmSocket;
     BluetoothDevice mmDevice;
@@ -86,6 +90,11 @@ public class MainActivity extends AppCompatActivity
     final Handler handler = new Handler(Looper.getMainLooper());
     Boolean isButton=true;
     View v;
+    int read = 0;
+    int count = 0;
+    int c_recv_size = 0;
+    int research =0;
+    byte[] total_size_temp = new byte[32];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -105,7 +114,7 @@ public class MainActivity extends AppCompatActivity
 
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (mBluetoothAdapter == null) {
-            //ErrorDialog("This device is not implement Bluetooth.");
+            msgDialog(1,"This device is not implement Bluetooth.");
             return;
         }
 
@@ -120,15 +129,13 @@ public class MainActivity extends AppCompatActivity
             ListPairedDevices();
 
             devices = pairedDevices.toArray(new BluetoothDevice[0]);
-           /* ((MainActivity) MainActivity.mContext).doConnect(devices[0]);*/
-           if(devices.length != 0){
-               mV_info.setText(devices[0] + "\n");
-           }else {
-               mV_info.setText("페어링 디바이스 정보가 없습니다. "+devices.length
-               );
-           }
+            if (devices.length != 0) {
+                mV_info.setText(devices[0] + "\n");
+            } else {
+                //디바이스가 없는 경우
+                mV_info.setText("페어링 디바이스 정보가 없습니다. " + devices.length);
+            }
         }
-
 
         btn = (Button) findViewById(R.id.button);
         btn.setOnClickListener(new View.OnClickListener() {
@@ -136,7 +143,7 @@ public class MainActivity extends AppCompatActivity
             public void onClick(View view) {
                 if (isButton) {
                     v = view;
-                    Search=true;
+                    Search = true;
                     Handler h = new Handler();
                     Snackbar.make(view, "Connect Bluetooth...... Success!", Snackbar.LENGTH_LONG)
                             .setAction("Action", null).show();
@@ -167,7 +174,6 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
-
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setVisibility(View.GONE);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -190,7 +196,6 @@ public class MainActivity extends AppCompatActivity
         insertToDatabase("1","1");
         Log.e("Insert"," 1, 1");
     }
-
     private void onloading() {
         progress.setVisibility(View.VISIBLE);
     }
@@ -201,17 +206,13 @@ public class MainActivity extends AppCompatActivity
         Set<BluetoothDevice> mPairedDevices = mBluetoothAdapter.getBondedDevices();
         if (mPairedDevices.size() > 0) {
         }
-
     }
-
-
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-
         if ((keyCode == KeyEvent.KEYCODE_BACK)) {
             AlertDialog.Builder d = new AlertDialog.Builder(MainActivity.this);
             d.setTitle("종료");
-            d.setMessage("정말 종료 하시겠습니꺄?");
+            d.setMessage("종료 하시겠습니꺄?");
             d.setIcon(R.drawable.ic_menu_send);
             d.setPositiveButton("예", new DialogInterface.OnClickListener() {
                 @Override
@@ -233,9 +234,6 @@ public class MainActivity extends AppCompatActivity
         }
         return super.onKeyDown(keyCode, event);
     }
-
-
-
     @Override
     public void onBackPressed() {
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -245,14 +243,12 @@ public class MainActivity extends AppCompatActivity
             super.onBackPressed();
         }
     }
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
         return true;
     }
-
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
@@ -267,7 +263,6 @@ public class MainActivity extends AppCompatActivity
 
         return super.onOptionsItemSelected(item);
     }
-
     @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
@@ -294,7 +289,6 @@ public class MainActivity extends AppCompatActivity
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
-
     @Override
     protected void onDestroy(){
         insertToDatabase("1","0");
@@ -312,7 +306,6 @@ public class MainActivity extends AppCompatActivity
             }
         }
     }
-
     public static interface BluetoothSocketWrapper {
         InputStream getInputStream() throws IOException;
         OutputStream getOutputStream() throws IOException;
@@ -322,13 +315,10 @@ public class MainActivity extends AppCompatActivity
         void close() throws IOException;
         BluetoothSocket getUnderlyingSocket();
     }
-
     static public Set<BluetoothDevice> getPairedDevices() {
         return mBluetoothAdapter.getBondedDevices();
     }
-
     public static class NativeBluetoothSocket implements BluetoothSocketWrapper {
-
         private BluetoothSocket socket;
 
         public NativeBluetoothSocket(BluetoothSocket tmp) {
@@ -370,10 +360,8 @@ public class MainActivity extends AppCompatActivity
             return socket;
         }
     }
-
     public void doConnect(BluetoothDevice device) {
         mmDevice = device;
-
         //Standard SerialPortService ID
         UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
 
@@ -382,15 +370,16 @@ public class MainActivity extends AppCompatActivity
             // 여기선 시리얼 통신을 위한 UUID를 지정하고 있습니다.
             BluetoothSocket tmp;
             tmp = mmDevice.createRfcommSocketToServiceRecord(uuid);  //secure 모드 경우
-            mmSocket =  new NativeBluetoothSocket(tmp);
+            mmSocket = new NativeBluetoothSocket(tmp);
             // 5. 블루투스 장치 검색을 중단합니다.
             mBluetoothAdapter.cancelDiscovery();
             // 6. ConnectTask를 시작합니다.
             new ConnectTask().execute();
         } catch (IOException e) {
+            msgDialog(1,e.getMessage());
         }
-    }
 
+    }
     private class ConnectTask extends AsyncTask<Void, Void, Boolean> {
         @Override
         protected void onPreExecute() {
@@ -470,12 +459,14 @@ public class MainActivity extends AppCompatActivity
                     //들어오기 시작하면 버퍼에 저장합니다.
                     return null;
                 } catch (FallbackException e1) {
+                    msgDialog(1,"트랩을 찾고있습니다.");
                     return false;
                 } catch (InterruptedException e1) {
                     return false;
                 } catch (IOException e1) {
                     //재접속 실패한 경우...
                     FindBLUE();
+                    msgDialog(1,"트랩을 찾고있습니다.");
                     return false;
                 }
                 finally
@@ -493,11 +484,9 @@ public class MainActivity extends AppCompatActivity
                     FindBLUE();
                 }
             }
-
             return true;
         }
     }
-
     private class CloseTask extends AsyncTask<Void, Void, Object> {
         @Override
         protected Object doInBackground(Void... params) {
@@ -509,11 +498,11 @@ public class MainActivity extends AppCompatActivity
                 FindBLUE();
             } catch (Throwable t) {
                 insertToDatabase("1","6");
+                msgDialog(1,t.getMessage());
                 return t;
             }
             return null;
         }
-
         @Override
         protected void onPostExecute(Object result) {
             if (result instanceof Throwable) {
@@ -521,7 +510,6 @@ public class MainActivity extends AppCompatActivity
             }
         }
     }
-
     protected void FindBLUE() {
         if(Search){
             ((MainActivity) MainActivity.mContext).doConnect(devices[0]);
@@ -529,7 +517,6 @@ public class MainActivity extends AppCompatActivity
         }else {
         }
     }
-
     public class FallbackBluetoothSocket extends NativeBluetoothSocket {
         private BluetoothSocket fallbackSocket;
 
@@ -570,18 +557,12 @@ public class MainActivity extends AppCompatActivity
             fallbackSocket.close();
         }
     }
-
     public static class FallbackException extends Exception {
         private static final long serialVersionUID = 1L;
         public FallbackException(Exception e) {
             super(e);
         }
     }
-
-    int read = 0;
-    int count = 0;
-    int c_recv_size = 0;
-
     void beginBuffer() {
         stopWorker = false;
         //문자열 수신 쓰레드.
@@ -606,7 +587,6 @@ public class MainActivity extends AppCompatActivity
                                 buffer.add(packetBytes[i]);
                                 count = 0;
                             }
-
                             TOTAL_SIZE = RECV_TOTAL_SIZE(buffer);
                         }
                         else {
@@ -616,49 +596,55 @@ public class MainActivity extends AppCompatActivity
                                     new CloseTask().execute();
                                     c_recv_size = 0;
                                     count = 0;
-                                    Log.e("510", " TOTAL_SIZE ( " +TOTAL_SIZE+ " )" + "> c_recv_size ( "+ c_recv_size + " ) : : ");
                                     insertToDatabase("1", "7");
-                                    Log.e("Insert", "1, 7");
-
                                 } else {
-                                    Log.e("510", " TOTAL_SIZE ( " +TOTAL_SIZE+ " )" + "== c_recv_size ( "+ c_recv_size + " ) : : ");
-                                    byte c;
-                                    stopWorker = true;
-                                    for (int i = 0; i < buffer.size(); i++) {
-                                        c = buffer.get(i);
-                                        Filedata.add(c);
-                                    }
-
-                                    String storage = Environment.getExternalStorageDirectory().getAbsolutePath() + "/temp/";
-                                    String Files = storage + "bufferinfo.txt";
-                                    File file = new File(storage);
-                                    if (!file.exists())  // 원하는 경로에 폴더가 있는지 확인
-                                        file.mkdirs();
-                                    FileOutputStream ost = new FileOutputStream(new File(Files));
-                                    if(ost !=null){
-                                        ost.write(toPrimitives(Filedata));
-                                        ost.flush();
-                                        ost.close();
-                                    }else {
-                                        Log.e("416", "Fail create File :: STORAGE ::"+ Files);
-                                    }
-
-                                    handler.post(new Runnable() {
-                                        public void run() {
-                                            mV_info2.setText("Success data received :: try (" + TOTAL_SIZE + ")");
-                                            c_recv_size = 0;
+                                    if (file_detection(buffer) == 0) {
+                                        new CloseTask().execute();
+                                        c_recv_size = 0;
+                                        count = 0;
+                                        insertToDatabase("1", "7");
+                                        msgDialog(ERROR_MESSAGE_FILEINPUT,"");
+                                    } else {
+                                        byte c;
+                                        stopWorker = true;
+                                        for (int i = 0; i < buffer.size(); i++) {
+                                            c = buffer.get(i);
+                                            Filedata.add(c);
                                         }
-                                    });
-                                    DataSuccess = true;
-                                    TOTAL_SIZE = 0;
-                                    insertToDatabase("1", "3");
-                                    //Log.e("Insert", "1, 3");
+
+                                        String storage = Environment.getExternalStorageDirectory().getAbsolutePath() + "/temp/";
+                                        String Files = storage + "bufferinfo.txt";
+                                        File file = new File(storage);
+                                        if (!file.exists())  // 원하는 경로에 폴더가 있는지 확인
+                                            file.mkdirs();
+                                        FileOutputStream ost = new FileOutputStream(new File(Files));
+                                        if (ost != null) {
+                                            ost.write(toPrimitives(Filedata));
+                                            ost.flush();
+                                            ost.close();
+                                        } else {
+                                            new CloseTask().execute();
+                                            c_recv_size = 0;
+                                            count = 0;
+                                        }
+
+                                        handler.post(new Runnable() {
+                                            public void run() {
+                                                mV_info2.setText("Success data received :: try (" + TOTAL_SIZE + ")");
+                                                c_recv_size = 0;
+                                            }
+                                        });
+                                        DataSuccess = true;
+                                        TOTAL_SIZE = 0;
+                                        insertToDatabase("1", "3");
+                                    }
                                 }
                             }
                         }
                     } catch (IOException ex) {
                         insertToDatabase("1","6");
                         //Log.e("Insert"," 1, 6");
+                        msgDialog(ERROR_MESSAGE_FILEINPUT, ex.getMessage());
                         stopWorker = true;
                     }
                 }
@@ -666,9 +652,7 @@ public class MainActivity extends AppCompatActivity
         });
         workerThread.start();
     }
-
-    byte[] toPrimitives(List<Byte> oBytes)
-    {
+    byte[] toPrimitives(List<Byte> oBytes){
         byte[] bytes = new byte[oBytes.size()];
 
         for(int i = 0; i < oBytes.size(); i++) {
@@ -676,8 +660,6 @@ public class MainActivity extends AppCompatActivity
         }
         return bytes;
     }
-    int research =0;
-
     public static int parseInt(String binary) {
         if (binary.length() < Integer.SIZE) return Integer.parseInt(binary, 2);
         int result = 0;
@@ -689,8 +671,6 @@ public class MainActivity extends AppCompatActivity
         }
         return result;
     }
-
-    byte[] total_size_temp = new byte[32];
     public int RECV_TOTAL_SIZE(List<Byte> bf) {
         int Totalsize = 9999;
         ByteBuffer by = null;
@@ -700,6 +680,7 @@ public class MainActivity extends AppCompatActivity
                 byte c = bf.get(j);
                 by.put(c);
             }
+
             total_size_temp = by.array();
             String temp = bytesToString(total_size_temp);
             Totalsize = parseInt(temp);
@@ -708,7 +689,13 @@ public class MainActivity extends AppCompatActivity
             return Totalsize;
         }
     }
-
+    public int file_detection(List<Byte> bf){
+        if(bf.size()<32){
+         return 0;
+        }else {
+            return 1;
+        }
+    }
     public static String bytesToString(byte[] b) {
         try {
             String s1 = new String (b,"UTF-8");
@@ -718,7 +705,6 @@ public class MainActivity extends AppCompatActivity
         }
         return null;
     }
-
     public void msgDialog(int i, String e){
         final String msg = e;
         if(i==ERROR_MEASSAGE) {
@@ -726,11 +712,29 @@ public class MainActivity extends AppCompatActivity
             {
                 public void run()
                 {
-                    mV_info2.setText("ERROR! " + msg);
+                    mV_info2.setText(msg);
                 }
             });
         }
-        if(i==RESEARCH_MESSAGE) {
+        else if(i==ERROR_MESSAGE_DATAINPUT){
+            handler.post(new Runnable()
+            {
+                public void run()
+                {
+                    mV_info2.setText("DATABASE 접근 불가. " + msg);
+                }
+            });
+        }
+        else if(i==ERROR_MESSAGE_FILEINPUT){
+            handler.post(new Runnable()
+            {
+                public void run()
+                {
+                    mV_info2.setText("FILEDATA 접근 불가. " + msg);
+                }
+            });
+        }
+        else if(i==RESEARCH_MESSAGE){
             handler.post(new Runnable()
             {
                 public void run() {
@@ -760,29 +764,32 @@ public class MainActivity extends AppCompatActivity
                     mV_info2.setText(msg);
                 }
             });
+        }else {
+            handler.post(new Runnable()
+            {
+                public void run()
+                {
+                    mV_info2.setText(msg);
+                }
+            });
         }
     }
-
     private void insertToDatabase(String id, String status){
         class InsertData extends AsyncTask<String, Void, String> {
             // ProgressDialog loading;
-
             @Override
             protected void onPreExecute() {
                 super.onPreExecute();
                 //loading = ProgressDialog.show(MainActivity.this, "Please Wait", null, true, true);
             }
-
             @Override
             protected void onPostExecute(String s) {
                 super.onPostExecute(s);
                 //loading.dismiss();
-                Toast.makeText(getApplicationContext(),s,Toast.LENGTH_LONG).show();
+                //Toast.makeText(getApplicationContext(),s,Toast.LENGTH_LONG).show();
             }
-
             @Override
             protected String doInBackground(String... params) {
-
                 try {
                     String id = (String) params[0];
                     String status = (String) params[1];
@@ -813,6 +820,7 @@ public class MainActivity extends AppCompatActivity
                     return sb.toString();
                 } catch (Exception e) {
                     insertToDatabase("1","6");
+                    msgDialog(ERROR_MESSAGE_DATAINPUT, "");
                     return new String("Exception: " + e.getMessage());
                 }
             }
