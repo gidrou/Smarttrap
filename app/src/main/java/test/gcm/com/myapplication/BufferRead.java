@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
@@ -29,39 +30,44 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
 import static java.lang.Integer.parseInt;
-
+import java.lang.Object;
 /**
  * Created by JungYoungHoon on 2017-04-20.
  */
 
 public class BufferRead  extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener  {
+        implements NavigationView.OnNavigationItemSelectedListener {
 
     Context context;
     FileInputStream fis;
     private final int SOCKET_FILENAMESIZE = 32;
     private final int SOCKET_TOTAL_SIZE = 32;
     private final int SOCKET_FILESIZE = 32;
-    private final int REQ_CODE_GALLERY =100;
+    private final int REQ_CODE_GALLERY = 100;
     private ArrayAdapter<String> ImageAdapter;
-    private String storage = Environment.getExternalStorageDirectory().getAbsolutePath()+"/temp/";
+    private String storage = Environment.getExternalStorageDirectory().getAbsolutePath() + "/temp/";
     TextView text_info;
     LinearLayout buf_layout;
     ListView ImageListView;
-    ArrayList<ImageData> datas= new ArrayList<ImageData>();
+    ArrayList<ImageData> datas = new ArrayList<ImageData>();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -72,39 +78,44 @@ public class BufferRead  extends AppCompatActivity
         buf_layout = (LinearLayout) findViewById(R.id.buffer_layout);
         context = this;
 
-        String Files = storage+"bufferinfo.txt";
+        String Files = storage + "bufferinfo.txt";
         File file = new File(storage);
 
         text_info = (TextView) findViewById(R.id.View_Buffer1);
-        ImageListView = (ListView)findViewById(R.id.Listview_buffer);
+        ImageListView = (ListView) findViewById(R.id.Listview_buffer);
 
-        if( !file.exists() )  // 원하는 경로에 폴더가 있는지 확인
+        if (!file.exists())  // 원하는 경로에 폴더가 있는지 확인
             file.mkdirs();
 
-        if(Files!=null) {
+        if (Files != null) {
             try {
-                fis =  new FileInputStream(new File(Files));
+                fis = new FileInputStream(new File(Files));
                 Log.e("FILE", "Total file size to read (in bytes) : " + fis.available());
 
                 byte[] total_size_temp = new byte[SOCKET_FILENAMESIZE];
-                int i_total_size=0;
+                int i_total_size = 0;
                 byte[] nameSizetemp = new byte[SOCKET_FILENAMESIZE];
-                int file_namesize=0;
+                int file_namesize = 0;
                 byte[] filename;
                 String file_name;
                 byte[] fileSizetemp = new byte[SOCKET_FILESIZE];
                 int file_size = 0;
                 byte[] imgfile;
                 byte[] totalbuffer;
+
                 String temp;
-                ByteBuffer nameSizebuf = null, filenamebuf = null, filesizebuf=null, filebuf=null, total_size=null;
+                ByteBuffer nameSizebuf = null, filenamebuf = null, filesizebuf = null, filebuf = null, total_size = null;
+
+                ByteBuffer hash_md5_buf = null;
+                byte[] hash_md5_byte;
+                String hash_md5_string;
 
                 FileChannel cin = fis.getChannel();
                 total_size = ByteBuffer.allocate((SOCKET_TOTAL_SIZE));
                 int check = 0;
                 check = cin.read(total_size);
                 if (check == -1) {
-                }else {
+                } else {
 
                     total_size_temp = total_size.array();
                     temp = bytesToString(total_size_temp);
@@ -137,6 +148,12 @@ public class BufferRead  extends AppCompatActivity
                         file_size = parseInt(temp);
                         //Log.e("FILE", "(3)FILE NAME SIZE : " + file_namesize + ", FILE NAME : " + file_name + ", FILE SIZE : " + file_size);
 
+                        hash_md5_byte = new byte[32];
+                        hash_md5_buf = ByteBuffer.allocate(32);
+                        cin.read(hash_md5_buf);
+                        hash_md5_byte = hash_md5_buf.array();
+                        hash_md5_string = new String(hash_md5_byte, "UTF-8");
+
                         imgfile = new byte[file_size];
                         filebuf = ByteBuffer.allocate(file_size);
                         cin.read(filebuf);
@@ -144,7 +161,19 @@ public class BufferRead  extends AppCompatActivity
                         FileOutputStream fos = new FileOutputStream(new File(storage + file_name));
                         FileChannel cout = fos.getChannel();
                         cout.write(filebuf);
-                        //Log.e("FILE", "(4)FILE NAME SIZE : " + file_namesize + ", FILE NAME : " + file_name + ", FILE SIZE : " + file_size + ",  FILE CREATE");
+
+                        String make_hash = check_md5(file_name, hash_md5_string);
+                        if (make_hash.equals(hash_md5_string)) {
+                            text_info.setText("The hash value is correct.");
+                            text_info.setTypeface(text_info.getTypeface(), Typeface.BOLD);
+                            Bitmap bm = BitmapFactory.decodeFile(storage + file_name);
+                            datas.add(new ImageData(file_name, bm,make_hash,hash_md5_string));
+                        } else {
+                            text_info.setText("The hash value is not correct.");
+                            text_info.setTypeface(text_info.getTypeface(), Typeface.BOLD);
+                            Bitmap bm = BitmapFactory.decodeFile(storage + file_name);
+                            datas.add(new ImageData(file_name,bm,make_hash,hash_md5_string));
+                        }
                     }
 
                     while (cin.size() > 0);
@@ -155,10 +184,10 @@ public class BufferRead  extends AppCompatActivity
                     filebuf.flip();
                 }
             } catch (FileNotFoundException e) {
-                Log.e("420","ERROR FILE NOT FOUND1");
+                Log.e("420", "ERROR FILE NOT FOUND1");
             } catch (IOException e) {
                 e.printStackTrace();
-                Log.e("420","ERROR FILE NOT FOUND2");
+                Log.e("420", "ERROR FILE NOT FOUND2");
             } finally {
                 if (fis != null) {
                     try {
@@ -168,25 +197,24 @@ public class BufferRead  extends AppCompatActivity
                     }
                 }
             }
-        }else {
-            Log.e("420","FILE NULL");
+        } else {
+            Log.e("420", "FILE NULL");
         }
 
         String[] filelist = getTitleList();
 
-        if(filelist!=null) {
+        if (filelist != null) {
             for (int i = 0; i < filelist.length; i++) {
                 Bitmap bm = BitmapFactory.decodeFile(storage + filelist[i]);
-                datas.add(new ImageData(filelist[i], bm));
+                //datas.add(new ImageData(filelist[i], bm));
             }
             CustomAdapter adapter = new CustomAdapter(getLayoutInflater(), datas);
             ImageListView.setAdapter(adapter);
 
             if (adapter != null) {
-                text_info.setText("Reading success.");
-                text_info.setTypeface(text_info.getTypeface(), Typeface.BOLD);
+
             }
-        }else{
+        } else {
             text_info.setText("Reading Fail.");
         }
 
@@ -208,6 +236,51 @@ public class BufferRead  extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view3);
         navigationView.setNavigationItemSelectedListener(this);
+    }
+
+    private String check_md5(String filename, String Recv_md5) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            String Files = storage + filename;
+            String new_md5 ="";
+            int numRead = 0;
+            byte[] buffer = new byte[1024];
+            try {
+                FileInputStream fis = new FileInputStream(new File(Files));
+                if (fis != null) {
+                    do {
+                        numRead = fis.read(buffer);
+                        if (numRead > 0) {
+                            md.update(buffer, 0, numRead);
+                        }
+                    } while (numRead != -1);
+                    fis.close();
+
+                    byte[] mdbytes = md.digest();
+                    StringBuffer sb = Convert_2_String(mdbytes);
+                    new_md5 = sb.toString();
+                    return  new_md5;
+                } else {
+                    return "Fail : File is Null";
+                }
+            } catch (FileNotFoundException fe) {
+                fe.printStackTrace();
+                return "Fail : "+fe;
+            } catch (IOException e) {
+            }
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            return "Fail : "+e;
+        }
+    return "Fail";
+    }
+
+    public StringBuffer Convert_2_String(byte[] byte_md){
+        StringBuffer complete = new StringBuffer();
+        for (int i = 0; i < byte_md.length; i++) {
+            complete.append(Integer.toString((byte_md[i] & 0xff) + 0x100, 16).substring(1));
+        }
+        return complete;
     }
 
     private String[] getTitleList()

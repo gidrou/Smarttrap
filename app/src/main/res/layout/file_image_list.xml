@@ -3,18 +3,18 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/ListView_Item"
     android:layout_width="fill_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     android:padding="5dip">
 
     <ImageView
         android:id="@+id/Bitmapid"
-        android:layout_width="150sp"
-        android:layout_height="150dp"
+        android:layout_width="57dp"
+        android:layout_height="59dp"
         android:src="@drawable/ic_menu_gallery" />
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:orientation="vertical">
 
         <LinearLayout
@@ -45,12 +45,12 @@
                 android:id="@+id/textView3"
                 android:layout_width="100sp"
                 android:layout_height="wrap_content"
-                android:text="Trap Num :" />
+                android:text="Trap num :" />
 
             <TextView
+                android:id="@+id/recv_hash"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:text="1" />
         </LinearLayout>
 
@@ -63,12 +63,12 @@
                 android:id="@+id/textView3"
                 android:layout_width="100sp"
                 android:layout_height="wrap_content"
-                android:text="Gps : " />
+                android:text="GPS" />
 
             <TextView
+                android:id="@+id/make_hash"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:text="37.3215984,127.1245616,17z" />
         </LinearLayout>
 

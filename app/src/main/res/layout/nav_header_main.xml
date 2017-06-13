@@ -26,7 +26,7 @@
         android:layout_height="wrap_content"
         android:layout_weight="0.42"
         android:paddingTop="0dp"
-        android:text="향토유전자원연구소"
+        android:text="향토 유전자원 연구소"
         android:textAppearance="@style/TextAppearance.AppCompat.Body1"
         android:textSize="16dp" />
 

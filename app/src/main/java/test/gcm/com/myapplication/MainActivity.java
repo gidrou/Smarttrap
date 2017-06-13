@@ -30,6 +30,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.WindowManager;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
@@ -46,6 +47,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -54,6 +56,7 @@ import java.net.URLEncoder;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -65,23 +68,23 @@ public class MainActivity extends AppCompatActivity
     private final int ERROR_MEASSAGE = 1;
     private final int ERROR_MESSAGE_DATAINPUT = 10;
     private final int ERROR_MESSAGE_FILEINPUT = 11;
-
     private final int RESEARCH_MESSAGE = 2;
     private final int QUIT_MEASSAGE = 3;
-
-
 
     private Boolean Search = false;
     private  Boolean DataSuccess  = false;
     public static Context mContext;
     public static AppCompatActivity activity;
     static BluetoothDevice[] devices;
+    Set<BluetoothDevice> pairedDevices;
     TextView mV_info,mV_info2;
     Button btn;
     private ProgressBar progress;
+    private int DEVICE_SIZE = 0;
     static BluetoothAdapter mBluetoothAdapter;
     BluetoothSocketWrapper  mmSocket;
     BluetoothDevice mmDevice;
+
     OutputStream mmOutputStream;
     InputStream mmInputStream;
     Thread workerThread = null;
@@ -95,11 +98,13 @@ public class MainActivity extends AppCompatActivity
     int c_recv_size = 0;
     int research =0;
     byte[] total_size_temp = new byte[32];
+    boolean[] is_connect;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        setContentView(R.layout.content_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
@@ -107,7 +112,6 @@ public class MainActivity extends AppCompatActivity
         activity=this;
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
         StrictMode.setThreadPolicy(policy);
-
         mV_info = (TextView) findViewById(R.id.View_info1);
         mV_info2 = (TextView) findViewById(R.id.View_info2);
         progress = (ProgressBar) findViewById(R.id.progress);
@@ -125,10 +129,18 @@ public class MainActivity extends AppCompatActivity
         }else {
             //2. 페어링 되어 있는 블루투스 장치들의 목록을 보여줍니다.
             //3. 목록에서 블루투스 장치를 선택하면 선택한 디바이스를 인자로 하여 doConnect 함수가 호출됩니다.
-            Set<BluetoothDevice> pairedDevices = MainActivity.getPairedDevices();
-            ListPairedDevices();
+            pairedDevices = MainActivity.getPairedDevices();
+            DEVICE_SIZE = pairedDevices.size();
+            if(DEVICE_SIZE > 0){
+                is_connect = new boolean[DEVICE_SIZE];
+                Arrays.fill(is_connect, false);
+            }
 
-            devices = pairedDevices.toArray(new BluetoothDevice[0]);
+            ListPairedDevices();
+            for(int i=0; i<DEVICE_SIZE; i++){
+                devices = pairedDevices.toArray(new BluetoothDevice[i]);
+                //Log.e("0524",""+devices[i]);
+            }
             if (devices.length != 0) {
                 mV_info.setText(devices[0] + "\n");
             } else {
@@ -160,13 +172,14 @@ public class MainActivity extends AppCompatActivity
                     FindBLUE();
                     btn.setText("STOP");
                 } else {
-                    Snackbar.make(view, "Researching Trap Stop", Snackbar.LENGTH_LONG)
+                    Snackbar.make(view, "Stop", Snackbar.LENGTH_LONG)
                             .setAction("Action", null).show();
                     btn.setText("START");
-                    mV_info2.setText("Researching Trap Stop");
+                    mV_info2.setText("Stop");
                     isButton = true;
                     onstop();
                     new CloseTask().execute();
+
                     insertToDatabase("1","0");
                     Log.e("Insert"," 1, 3");
                     Search=false;
@@ -174,7 +187,7 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        /*FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setVisibility(View.GONE);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -191,7 +204,7 @@ public class MainActivity extends AppCompatActivity
         toggle.syncState();
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(this);
+        navigationView.setNavigationItemSelectedListener(this);*/
         //"id", "status" id = device[list].
         insertToDatabase("1","1");
         Log.e("Insert"," 1, 1");
@@ -364,7 +377,6 @@ public class MainActivity extends AppCompatActivity
         mmDevice = device;
         //Standard SerialPortService ID
         UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
-
         try {
             // 4. 지정한 블루투스 장치에 대한 특정 UUID 서비스를 하기 위한 소켓을 생성합니다.
             // 여기선 시리얼 통신을 위한 UUID를 지정하고 있습니다.
@@ -378,7 +390,6 @@ public class MainActivity extends AppCompatActivity
         } catch (IOException e) {
             msgDialog(1,e.getMessage());
         }
-
     }
     private class ConnectTask extends AsyncTask<Void, Void, Boolean> {
         @Override
@@ -394,27 +405,23 @@ public class MainActivity extends AppCompatActivity
                 //8. 소켓에 대한 입출력 스트림을 가져옵니다.
                 mmOutputStream = mmSocket.getOutputStream();
                 mmInputStream = mmSocket.getInputStream();
-                if(mmSocket!=null){
-                    handler.post(new Runnable()
-                    {
-                        public void run()
-                        {
-                            mV_info2.setText("SUCCESS SOCKET OPEN :: try ("+Connect_try+")");
-                            insertToDatabase("1","2");
-                            Log.e("Insert"," 1, 2");
+                if (mmSocket != null) {
+                    handler.post(new Runnable() {
+                        public void run() {
+                            mV_info2.setText("SUCCESS SOCKET OPEN :: try (" + Connect_try + ")");
+                            insertToDatabase("1", "2");
+                            Log.e("Insert", " 1, 2");
                         }
                     });
                     Thread.sleep(3000);
                     beginBuffer();
-                }else {
+                } else {
                     Connect_try++;
-                    handler.post(new Runnable()
-                    {
-                        public void run()
-                        {
-                            mV_info2.setText("SOCKET might closed :: try ("+Connect_try+")");
-                            insertToDatabase("1","5");
-                            Log.e("Insert"," 1, 5");
+                    handler.post(new Runnable() {
+                        public void run() {
+                            mV_info2.setText("SOCKET might closed :: try (" + Connect_try + ")");
+                            insertToDatabase("1", "5");
+                            Log.e("Insert", " 1, 5");
                         }
                     });
                 }
@@ -426,32 +433,28 @@ public class MainActivity extends AppCompatActivity
                     final Handler handler = new Handler(Looper.getMainLooper());
                     mmSocket = new FallbackBluetoothSocket(mmSocket.getUnderlyingSocket());
                     Thread.sleep(100);
-                    insertToDatabase("1","6");
+                    insertToDatabase("1", "6");
                     //재접속을 시도합니다.
                     mmSocket.connect();
 
                     //소켓에 대한 입출력 스트림을 가져옵니다.
                     mmOutputStream = mmSocket.getOutputStream();
                     //mmInputStream = mmSocket.getInputStream();
-                    if(mmSocket!=null){
-                        handler.post(new Runnable()
-                        {
-                            public void run()
-                            {
-                                mV_info2.setText("SUCCESS SOCKET OPEN :: try ("+Connect_try+")");
-                                insertToDatabase("1","2");
+                    if (mmSocket != null) {
+                        handler.post(new Runnable() {
+                            public void run() {
+                                mV_info2.setText("SUCCESS SOCKET OPEN :: try (" + Connect_try + ")");
+                                insertToDatabase("1", "2");
                             }
                         });
                         Thread.sleep(3000);
                         beginBuffer();
-                    }else {
-                        msgDialog(1,"SOECKT might be closed");
-                        handler.post(new Runnable()
-                        {
-                            public void run()
-                            {
-                                mV_info2.setText("SOCKET might closed :: try ("+Connect_try+")");
-                                insertToDatabase("1","5");
+                    } else {
+                        msgDialog(1, "SOECKT might be closed");
+                        handler.post(new Runnable() {
+                            public void run() {
+                                mV_info2.setText("SOCKET might closed :: try (" + Connect_try + ")");
+                                insertToDatabase("1", "5");
                             }
                         });
                     }
@@ -459,28 +462,22 @@ public class MainActivity extends AppCompatActivity
                     //들어오기 시작하면 버퍼에 저장합니다.
                     return null;
                 } catch (FallbackException e1) {
-                    msgDialog(1,"트랩을 찾고있습니다.");
+                    //msgDialog(1,"트랩을 찾고있습니다.");
                     return false;
                 } catch (InterruptedException e1) {
                     return false;
                 } catch (IOException e1) {
                     //재접속 실패한 경우...
                     FindBLUE();
-                    msgDialog(1,"트랩을 찾고있습니다.");
+                    //msgDialog(1,"트랩을 찾고있습니다.");
                     return false;
-                }
-                finally
-                {
-                    if (mmSocket == null)
-                    {
+                } finally {
+                    if (mmSocket == null) {
                         FindBLUE();
                     }
                 }
-            }
-            finally
-            {
-                if (mmSocket == null)
-                {
+            } finally {
+                if (mmSocket == null) {
                     FindBLUE();
                 }
             }
@@ -494,8 +491,6 @@ public class MainActivity extends AppCompatActivity
                 try{mmOutputStream.close();}catch(Throwable t){/*ignore*/}
                 try{mmInputStream.close();}catch(Throwable t){/*ignore*/}
                 mmSocket.close();
-                insertToDatabase("1","0");
-                FindBLUE();
             } catch (Throwable t) {
                 insertToDatabase("1","6");
                 msgDialog(1,t.getMessage());
@@ -511,12 +506,25 @@ public class MainActivity extends AppCompatActivity
         }
     }
     protected void FindBLUE() {
+        for(Boolean ck : is_connect){
+            int chk=0;
+            if (ck == true){
+                chk++;
+            }
+            if(chk==DEVICE_SIZE){
+                Search = false;
+            }
+        }
         if(Search){
             ((MainActivity) MainActivity.mContext).doConnect(devices[0]);
-            msgDialog(RESEARCH_MESSAGE,"");
-        }else {
+            String s_devices = devices[0].getAddress();
+            msgDialog(RESEARCH_MESSAGE, s_devices);
+        }
+        else{msgDialog(1,"Success");
+        new CloseTask().execute();
         }
     }
+
     public class FallbackBluetoothSocket extends NativeBluetoothSocket {
         private BluetoothSocket fallbackSocket;
 
@@ -570,15 +578,17 @@ public class MainActivity extends AppCompatActivity
             List<Byte> buffer = new ArrayList<>();
             List<Byte> Filedata = new ArrayList<>();
             int TOTAL_SIZE = 9999;
+
             @Override
             public void run() {
                 while (!Thread.currentThread().isInterrupted() && !stopWorker) {
                     read++;
                     try {
-                        mmInputStream = mmSocket.getInputStream();
                         int bytesAvailable = 0;
-                        bytesAvailable = mmInputStream.available();
-
+                        mmInputStream = mmSocket.getInputStream();
+                        if(mmInputStream != null){
+                            bytesAvailable = mmInputStream.available();
+                        }
                         if (bytesAvailable > 0) {
                             byte[] packetBytes = new byte[bytesAvailable];
                             c_recv_size += bytesAvailable;
@@ -588,30 +598,31 @@ public class MainActivity extends AppCompatActivity
                                 count = 0;
                             }
                             TOTAL_SIZE = RECV_TOTAL_SIZE(buffer);
-                        }
-                        else {
+                            Log.e("0601","RECV_TOTAL_SIZE : " +TOTAL_SIZE);
+                        }else{
                             count++;
-                            if (count > 100) {
+                            if (count > 100){
                                 if (c_recv_size < TOTAL_SIZE) {
+                                   // Log.e("0601","File created || " +TOTAL_SIZE);
                                     new CloseTask().execute();
                                     c_recv_size = 0;
                                     count = 0;
                                     insertToDatabase("1", "7");
-                                } else {
-                                    if (file_detection(buffer) == 0) {
+                                }else{
+                                    if(file_detection(buffer) == 0) {
                                         new CloseTask().execute();
                                         c_recv_size = 0;
                                         count = 0;
                                         insertToDatabase("1", "7");
-                                        msgDialog(ERROR_MESSAGE_FILEINPUT,"");
-                                    } else {
+                                        msgDialog(ERROR_MESSAGE_FILEINPUT, "");
+                                    }else{
                                         byte c;
                                         stopWorker = true;
                                         for (int i = 0; i < buffer.size(); i++) {
                                             c = buffer.get(i);
                                             Filedata.add(c);
                                         }
-
+                                        //Log.e("0601","File created || " +TOTAL_SIZE);
                                         String storage = Environment.getExternalStorageDirectory().getAbsolutePath() + "/temp/";
                                         String Files = storage + "bufferinfo.txt";
                                         File file = new File(storage);
@@ -627,7 +638,6 @@ public class MainActivity extends AppCompatActivity
                                             c_recv_size = 0;
                                             count = 0;
                                         }
-
                                         handler.post(new Runnable() {
                                             public void run() {
                                                 mV_info2.setText("Success data received :: try (" + TOTAL_SIZE + ")");
@@ -636,13 +646,15 @@ public class MainActivity extends AppCompatActivity
                                         });
                                         DataSuccess = true;
                                         TOTAL_SIZE = 0;
+                                        //is_connect[] = true;
                                         insertToDatabase("1", "3");
+                                        new CloseTask().execute();
                                     }
                                 }
                             }
                         }
                     } catch (IOException ex) {
-                        insertToDatabase("1","6");
+                        insertToDatabase("1", "6");
                         //Log.e("Insert"," 1, 6");
                         msgDialog(ERROR_MESSAGE_FILEINPUT, ex.getMessage());
                         stopWorker = true;
@@ -734,27 +746,27 @@ public class MainActivity extends AppCompatActivity
                 }
             });
         }
-        else if(i==RESEARCH_MESSAGE){
+        else if(i==RESEARCH_MESSAGE){/*
             handler.post(new Runnable()
             {
                 public void run() {
                     if(research==0){
-                        Snackbar.make(v, "Researching Bluetooth " + "Device : " + devices[0], Snackbar.LENGTH_LONG)
+                        Snackbar.make(v, "Researching Bluetooth " + "Device : " + msg, Snackbar.LENGTH_LONG)
                                 .setAction("Action", null).show();
                         research++;
                     }
                     else if (research == 1){
-                        Snackbar.make(v, "Researching Bluetooth " + "Device : " + devices[0], Snackbar.LENGTH_LONG)
+                        Snackbar.make(v, "Researching Bluetooth " + "Device : " + msg, Snackbar.LENGTH_LONG)
                                 .setAction("Action", null).show();
                         research++;
                     }
                     else if (research == 2){
-                        Snackbar.make(v, "Researching Bluetooth " + "Device : " + devices[0], Snackbar.LENGTH_LONG)
+                        Snackbar.make(v, "Researching Bluetooth " + "Device : " + msg, Snackbar.LENGTH_LONG)
                                 .setAction("Action", null).show();
                         research=0;
                     }
                 }
-            });
+            });*/
         }
         else if(i==QUIT_MEASSAGE) {
             handler.post(new Runnable()

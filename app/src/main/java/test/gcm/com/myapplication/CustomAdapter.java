@@ -36,12 +36,17 @@ public class CustomAdapter extends BaseAdapter {
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         // TODO Auto-generated method stub
-        if( convertView==null){
-            convertView= inflater.inflate(R.layout.file_image_list, null);
+        if (convertView == null) {
+            convertView = inflater.inflate(R.layout.file_image_list, null);
         }
-        TextView text_name= (TextView)convertView.findViewById(R.id.file_name);
-        ImageView bitimg= (ImageView)convertView.findViewById(R.id.Bitmapid);
-        text_name.setText( datas.get(position).getName() );
+        TextView text_name = (TextView) convertView.findViewById(R.id.file_name);
+        TextView text_recv_hash = (TextView) convertView.findViewById(R.id.recv_hash);
+        TextView text_make_hash = (TextView) convertView.findViewById(R.id.make_hash);
+
+        ImageView bitimg = (ImageView) convertView.findViewById(R.id.Bitmapid);
+        text_name.setText(datas.get(position).getName());
+        text_recv_hash.setText(datas.get(position).get_recv_ck_md5());
+        text_make_hash.setText(datas.get(position).get_make_ck_md5());
         bitimg.setImageBitmap(datas.get(position).getImgId());
         /*img_flag.setImageResource( datas.get(position).getImgId() );*/
         return convertView;

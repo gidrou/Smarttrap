@@ -1,48 +1,117 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!--<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:layout_gravity="center"
+    android:background="@drawable/side_nav_bar"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
     tools:context="test.gcm.com.myapplication.MainActivity"
-    tools:showIn="@layout/app_bar_main">
+    tools:layout_gravity="center"
+    tools:showIn="@layout/app_bar_main">-->
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="fill_parent"
-    android:layout_height="fill_parent"
-    android:layout_margin="20sp"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/side_nav_bar"
     android:orientation="vertical"
-    app:layout_behavior="@string/appbar_scrolling_view_behavior"
     tools:context="test.gcm.com.myapplication.MainActivity"
-    tools:showIn="@layout/app_bar_main">
+    >
 
-    <ImageView
-        android:id="@+id/imageView"
+    <!-- Title -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="85sp"
-        android:contentDescription=""
-        android:paddingBottom="15sp"
-        android:scaleType="fitXY"
-        app:srcCompat="@mipmap/logo"
-        tools:ignore="ContentDescription" />
+        android:layout_height="0dp"
+        android:layout_weight="1">
+        <TextView
+            android:id="@+id/textView5"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:fontFamily="sans-serif"
+            android:gravity="center"
+            android:text="SMART TRAP"
+            android:textColor="@android:color/background_light"
+            android:textSize="35sp"
+            android:textStyle="bold"
+            tools:layout_gravity="center" />
+    </LinearLayout>
 
-    <ImageView
-        android:id="@+id/imageView4"
+    <!-- Buttons -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="85sp"
-        android:contentDescription=""
-        android:paddingBottom="15sp"
-        android:scaleType="fitXY"
-        app:srcCompat="@mipmap/dk_logo"
-        tools:ignore="ContentDescription" />
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+        <Button
+            android:id="@+id/button"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_gravity="bottom"
+            android:background="@drawable/side_nav_bar"
+            android:text="START"
+            android:textColor="@android:color/white"
+            android:textSize="25sp"
+            tools:background="@drawable/side_nav_bar" />
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="20dp"/>
+        <Button
+            android:id="@+id/button"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_gravity="bottom"
+            android:background="@drawable/side_nav_bar"
+            android:text="gallery"
+            android:textColor="@android:color/white"
+            android:textSize="25sp"
+            tools:background="@drawable/side_nav_bar" />
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="20dp"/>
+        <Button
+            android:id="@+id/button"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_gravity="bottom"
+            android:background="@drawable/side_nav_bar"
+            android:text="settings"
+            android:textColor="@android:color/white"
+            android:textSize="25sp"
+            tools:background="@drawable/side_nav_bar" />
 
+    </LinearLayout>
+
+    <!-- Logo -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.1">
+        <ImageView
+            android:id="@+id/imageView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription=""
+            android:scaleType="fitXY"
+            app:srcCompat="@mipmap/logo"
+            tools:ignore="ContentDescription" />
+
+        <ImageView
+            android:id="@+id/imageView4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription=""
+            android:scaleType="fitCenter"
+            app:srcCompat="@mipmap/dk_logo"
+            tools:ignore="ContentDescription" />
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:visibility="gone">
 
         <TextView
             android:id="@+id/View1"
@@ -51,7 +120,7 @@
             android:layout_marginLeft="11dp"
             android:layout_marginStart="11dp"
             android:layout_weight="1"
-            android:text="연결 트랩 정보 : "
+            android:text="연결 디바이스 정보 : "
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintHorizontal_bias="0.083"
@@ -71,10 +140,13 @@
             android:text="View_info" />
     </LinearLayout>
 
+    </LinearLayout>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:visibility="gone">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -104,8 +176,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="11dp"
                 android:layout_marginStart="11dp"
-                android:layout_weight="1"
-                android:text="Reseraching Trap..." />
+                android:layout_weight="1" />
         </LinearLayout>
 
 
@@ -113,28 +184,16 @@
 
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
+        android:layout_height="wrap_content"
+        tools:layout_gravity="center">
         <ProgressBar
             android:id="@+id/progress"
             android:layout_width="100dp"
             android:layout_height="130dp"
             android:layout_gravity="center"
-
-
             android:visibility="gone" />
-
-        <Button
-            android:id="@+id/button"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
-            android:background="@drawable/side_nav_bar"
-            android:text="START"
-            android:textColor="@android:color/white"
-            tools:background="@drawable/side_nav_bar" />
     </FrameLayout>
 
 </LinearLayout>
-
-</android.support.constraint.ConstraintLayout>
+<!--
+</android.support.constraint.ConstraintLayout>-->

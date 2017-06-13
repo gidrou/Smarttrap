@@ -53,8 +53,6 @@ public class PairedDeviceList  extends AppCompatActivity
 
         if (mPairedDevices.size() > 0) {
             /*findViewById(R.id.title_paired_devices).setVisibility(View.VISIBLE);*/
-
-
             for (BluetoothDevice mDevice : mPairedDevices) {
                 int i =1;
                 mPairedDevicesArrayAdapter.add(i+".  "+mDevice.getName() + "  " + mDevice.getAddress());

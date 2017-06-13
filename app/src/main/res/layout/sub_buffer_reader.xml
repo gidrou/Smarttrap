@@ -8,9 +8,7 @@
     tools:context="test.gcm.com.myapplication.MainActivity"
     tools:showIn="@layout/app_bar_buffer_reader">
 
-    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
+    <LinearLayout
         android:id="@+id/buffer_layout"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
@@ -18,6 +16,8 @@
         android:orientation="vertical"
         app:layout_behavior="@string/appbar_scrolling_view_behavior"
         tools:context="test.gcm.com.myapplication.MainActivity"
+        tools:layout_editor_absoluteX="2dp"
+        tools:layout_editor_absoluteY="0dp"
         tools:showIn="@layout/app_bar_buffer_reader">
 
         <ImageView
