@@ -83,26 +83,60 @@
             android:textSize="25sp"
             tools:background="@drawable/side_nav_bar" />
 
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            tools:layout_gravity="center">
+
+            <ProgressBar
+                android:id="@+id/progress"
+                android:layout_width="100dp"
+                android:layout_height="130dp"
+                android:layout_gravity="center"
+                android:visibility="gone" />
+        </FrameLayout>
+
     </LinearLayout>
 
     <!-- Logo -->
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="0.1">
+
+        <ImageView
+            android:id="@+id/imageView5"
+            android:layout_width="0dp"
+            android:layout_weight="0.3"
+            android:layout_height="match_parent"
+            android:contentDescription=""
+            android:scaleType="center"
+            app:srcCompat="@mipmap/ngtms_logo"
+            tools:ignore="ContentDescription" />
+
+        <View
+            android:layout_width="5dp"
+            android:layout_height="match_parent"/>
+
         <ImageView
             android:id="@+id/imageView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="0dp"
+            android:layout_weight="0.3"
+            android:layout_height="match_parent"
             android:contentDescription=""
-            android:scaleType="fitXY"
             app:srcCompat="@mipmap/logo"
             tools:ignore="ContentDescription" />
 
+        <View
+            android:layout_width="5dp"
+            android:layout_height="match_parent"/>
+
         <ImageView
             android:id="@+id/imageView4"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="0.3"
             android:contentDescription=""
             android:scaleType="fitCenter"
             app:srcCompat="@mipmap/dk_logo"
@@ -181,18 +215,6 @@
 
 
     </LinearLayout>
-
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        tools:layout_gravity="center">
-        <ProgressBar
-            android:id="@+id/progress"
-            android:layout_width="100dp"
-            android:layout_height="130dp"
-            android:layout_gravity="center"
-            android:visibility="gone" />
-    </FrameLayout>
 
 </LinearLayout>
 <!--

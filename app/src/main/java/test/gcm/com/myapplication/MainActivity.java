@@ -149,6 +149,10 @@ public class MainActivity extends AppCompatActivity
             }
         }
 
+
+
+
+        출처: http://mainia.tistory.com/555 [녹두장군 - 상상을 현실로]
         btn = (Button) findViewById(R.id.button);
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -157,18 +161,16 @@ public class MainActivity extends AppCompatActivity
                     v = view;
                     Search = true;
                     Handler h = new Handler();
-                    Snackbar.make(view, "Connect Bluetooth...... Success!", Snackbar.LENGTH_LONG)
-                            .setAction("Action", null).show();
-                    h.postDelayed(new Runnable() {
-                        @Override
+                    /*Snackbar.make(view, "Connect Bluetooth...... Success!", Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();*/
+                    h.post(new Runnable() {
                         public void run() {
-                            Snackbar.make(v, "Researching Bluetooth " + "Device : " + devices[0], Snackbar.LENGTH_LONG)
-                                    .setAction("Action", null).show();
-                            mV_info2.setText("Researching Trap...");
+                            CheckTypesTask task = new CheckTypesTask();
+                            task.execute();
                         }
-                    }, 3000);
+                    });
                     isButton = false;
-                    onloading();
+                    //onloading();
                     FindBLUE();
                     btn.setText("STOP");
                 } else {
@@ -177,9 +179,8 @@ public class MainActivity extends AppCompatActivity
                     btn.setText("START");
                     mV_info2.setText("Stop");
                     isButton = true;
-                    onstop();
+                    //onstop();
                     new CloseTask().execute();
-
                     insertToDatabase("1","0");
                     Log.e("Insert"," 1, 3");
                     Search=false;
@@ -220,6 +221,56 @@ public class MainActivity extends AppCompatActivity
         if (mPairedDevices.size() > 0) {
         }
     }
+    private class CheckTypesTask extends AsyncTask<String, String, String> {
+
+        ProgressDialog dlg = new ProgressDialog(MainActivity.this);
+
+        @Override
+        protected void onPreExecute() {
+            dlg.setMessage("블루투스를 연결중...");
+            dlg.setButton(DialogInterface.BUTTON_NEGATIVE, "Cancel",
+                    new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog,
+                                            int which) {
+
+                            Toast.makeText(getBaseContext(),
+                                    "취소",
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    });
+
+            dlg.setButton(DialogInterface.BUTTON_POSITIVE, "Hide",
+                    new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog,
+                                            int which) {
+
+                            Toast.makeText(getBaseContext(),
+                                    "Hide",
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    });
+
+            dlg.show();// show dialog
+            super.onPreExecute();
+        }
+
+        @Override
+        protected String doInBackground(String... arg0) {
+            try {
+                for (int i = 0; i < 50; i++) {
+                    publishProgress("" + (int) (i * 30));
+                    Thread.sleep(500);
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+
+    }
+
+
+
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if ((keyCode == KeyEvent.KEYCODE_BACK)) {
